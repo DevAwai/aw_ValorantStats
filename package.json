@@ -12,6 +12,7 @@
   "dependencies": {
     "@discordjs/rest": "^2.4.3",
     "discord.js": "^14.18.0",
-    "fs": "^0.0.1-security"
+    "fs": "^0.0.1-security",
+    "path": "^0.12.7"
   }
 }
