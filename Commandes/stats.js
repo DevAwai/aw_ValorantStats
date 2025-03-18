@@ -40,11 +40,12 @@ module.exports = {
             }
 
             const userInfo = user.info();
+            const rankedStats = user.ranked();
             const rank = userInfo.rank || "Inconnu";
             const peakRank = userInfo.peakRank || "Inconnu";
-            const winRate = userInfo.winRate || "N/A";
-            const matchesPlayed = userInfo.matchesPlayed || "N/A";
             const avatarURL = userInfo.avatar;
+            const rankedMatchesPlayed = rankedStats.matchesPlayed || 0;
+            const rankedWinRate = rankedStats.matchesWinPct || 0;
 
             const embed = new EmbedBuilder()
                 .setTitle(`📊 Stats de ${gameName}#${tagLine}`)
@@ -53,8 +54,8 @@ module.exports = {
                 .addFields(
                     { name: "🏆 Rang actuel", value: rank, inline: true },
                     { name: "🚀 Peak Rank", value: peakRank, inline: true },
-                    { name: "📈 Taux de victoire", value: winRate, inline: true },
-                    { name: "🎮 Parties jouées", value: matchesPlayed.toString(), inline: true }
+                    { name: "📈 Taux de victoire", value: rankedWinRate, inline: true },
+                    { name: "🎮 Parties jouées", value: rankedMatchesPlayed.toString(), inline: true }
                 )
                 .setFooter({ text: "Statistiques fournies par Vandal.js" })
                 .setTimestamp();
