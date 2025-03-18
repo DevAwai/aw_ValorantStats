@@ -41,28 +41,21 @@ module.exports = {
 
             const userInfo = user.info();
             const rankedStats = user.ranked();
-            const generalStats = user;
-
-            // 📌 Infos générales
-            const level = userInfo.accountLevel || "Inconnu";
+            const unrakedStats = user.unrated() || {}; 
+            const generalStats = user.gamemodes();
+//---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
             const avatarURL = userInfo.avatar;
             const bannerURL = userInfo.card || "https://media.valorant-api.com/playercards/99fbf62b-4dbe-4edb-b4dc-89b4a56df7aa.png"; 
-
-            // 📌 Stats Ranked
             const rank = userInfo.rank || "Non classé";
             const peakRank = userInfo.peakRank || "Inconnu";
-            const rankedMatchesPlayed = rankedStats.matchesPlayed || 0;
-            const rankedWinRate = rankedStats.matchesWinPct || 0;
-            const rankedKD = rankedStats.kd || 0;
+            const rankedKD = rankedStats.kDRatio || 0;
             const rankedKills = rankedStats.kills || 0;
-            const rankedHeadshots = rankedStats.headshotsPct || 0;
-
-            // 📌 Stats Globales
-            const totalMatchesPlayed = generalStats?.matchesPlayed || "Inconnu";
+            const rankedHeadshots = rankedStats.headshotsPercentage || 0;
             const totalKills = generalStats?.kills || "Inconnu";
-            const totalHeadshots = generalStats?.headshotsPct ? `${generalStats.headshotsPct.toFixed(2)}%` : "Inconnu";
+            const rankedplayed = Number(rankedStats.matchesPlayed) || 0; 
+            const unrankedplayed = Number(unrakedStats.matchesPlayed) || 0;
+            const totalplayed = rankedplayed + unrankedplayed;
 
-            // 🎨 Couleur dynamique
             const rankColors = {
                 "Fer": "#9F9F9F",
                 "Bronze": "#CD7F32",
@@ -80,7 +73,6 @@ module.exports = {
                 if (rank.includes(key)) embedColor = rankColors[key];
             });
 
-            
             const embed = new EmbedBuilder()
                 .setTitle(`📊 Valorant Stats - ${gameName}#${tagLine}`)
                 .setColor(embedColor)
@@ -89,7 +81,6 @@ module.exports = {
                 .addFields(
                     { name: "🏆 Rang Actuel", value: `**${rank}**`, inline: true },
                     { name: "🚀 Peak Rank", value: `**${peakRank}**`, inline: true },
-                    { name: "🎖️ Niveau", value: `**${level}**`, inline: true }
                 )
                 .addFields(
                     { name: "🔫 K/D Ratio (Ranked)", value: `**${rankedKD.toFixed(2)}**`, inline: true },
@@ -97,9 +88,8 @@ module.exports = {
                     { name: "🎯 Headshot % (Ranked)", value: `**${rankedHeadshots.toFixed(2)}%**`, inline: true }
                 )
                 .addFields(
-                    { name: "🎮 Parties Jouées (Total)", value: `**${totalMatchesPlayed}**`, inline: true },
-                    { name: "💀 Kills (Total)", value: `**${totalKills}**`, inline: true },
-                    { name: "🎯 Headshot % (Total)", value: `**${totalHeadshots}**`, inline: true }
+                    { name: "🎮 Parties Jouées (Total)", value: `**${totalplayed}**`, inline: true },
+                    { name: "💀 Kills (Total)", value: `**${totalKills}**`, inline: true }
                 )
                 .setTimestamp();
 
