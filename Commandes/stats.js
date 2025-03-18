@@ -1,5 +1,5 @@
 const { SlashCommandBuilder, EmbedBuilder } = require("discord.js");
-const { API } = require('vandal.js');
+const { API } = require("vandal.js");
 
 module.exports = {
     name: "stats",
@@ -41,30 +41,71 @@ module.exports = {
 
             const userInfo = user.info();
             const rankedStats = user.ranked();
-            const rank = userInfo.rank || "Inconnu";
-            const peakRank = userInfo.peakRank || "Inconnu";
+            const generalStats = user;
+
+            // 📌 Infos générales
+            const level = userInfo.accountLevel || "Inconnu";
             const avatarURL = userInfo.avatar;
+            const bannerURL = userInfo.card || "https://media.valorant-api.com/playercards/99fbf62b-4dbe-4edb-b4dc-89b4a56df7aa.png"; 
+
+            // 📌 Stats Ranked
+            const rank = userInfo.rank || "Non classé";
+            const peakRank = userInfo.peakRank || "Inconnu";
             const rankedMatchesPlayed = rankedStats.matchesPlayed || 0;
             const rankedWinRate = rankedStats.matchesWinPct || 0;
-            const winRateString = `${rankedWinRate.toFixed(2)}%`;
+            const rankedKD = rankedStats.kd || 0;
+            const rankedKills = rankedStats.kills || 0;
+            const rankedHeadshots = rankedStats.headshotsPct || 0;
 
+            // 📌 Stats Globales
+            const totalMatchesPlayed = generalStats?.matchesPlayed || "Inconnu";
+            const totalKills = generalStats?.kills || "Inconnu";
+            const totalHeadshots = generalStats?.headshotsPct ? `${generalStats.headshotsPct.toFixed(2)}%` : "Inconnu";
+
+            // 🎨 Couleur dynamique
+            const rankColors = {
+                "Fer": "#9F9F9F",
+                "Bronze": "#CD7F32",
+                "Argent": "#C0C0C0",
+                "Or": "#FFD700",
+                "Platine": "#00FFFF",
+                "Diamant": "#00BFFF",
+                "Ascendant": "#4B0082",
+                "Immortel": "#DC143C",
+                "Radiant": "#FFFF00"
+            };
+
+            let embedColor = "Blue";
+            Object.keys(rankColors).forEach((key) => {
+                if (rank.includes(key)) embedColor = rankColors[key];
+            });
+
+            
             const embed = new EmbedBuilder()
-                .setTitle(`📊 Stats de ${gameName}#${tagLine}`)
-                .setColor("Blue")
-                .setThumbnail(avatarURL) 
+                .setTitle(`📊 Valorant Stats - ${gameName}#${tagLine}`)
+                .setColor(embedColor)
+                .setThumbnail(avatarURL)
+                .setImage(bannerURL)
                 .addFields(
-                    { name: "🏆 Rang actuel", value: rank, inline: true },
-                    { name: "🚀 Peak Rank", value: peakRank, inline: true },
-                    { name: "📈 Taux de victoire", value: winRateString, inline: true },
-                    { name: "🎮 Parties jouées", value: rankedMatchesPlayed.toString(), inline: true }
+                    { name: "🏆 Rang Actuel", value: `**${rank}**`, inline: true },
+                    { name: "🚀 Peak Rank", value: `**${peakRank}**`, inline: true },
+                    { name: "🎖️ Niveau", value: `**${level}**`, inline: true }
                 )
-                .setFooter({ text: "Statistiques fournies par Vandal.js" })
+                .addFields(
+                    { name: "🔫 K/D Ratio (Ranked)", value: `**${rankedKD.toFixed(2)}**`, inline: true },
+                    { name: "💀 Kills (Ranked)", value: `**${rankedKills}**`, inline: true },
+                    { name: "🎯 Headshot % (Ranked)", value: `**${rankedHeadshots.toFixed(2)}%**`, inline: true }
+                )
+                .addFields(
+                    { name: "🎮 Parties Jouées (Total)", value: `**${totalMatchesPlayed}**`, inline: true },
+                    { name: "💀 Kills (Total)", value: `**${totalKills}**`, inline: true },
+                    { name: "🎯 Headshot % (Total)", value: `**${totalHeadshots}**`, inline: true }
+                )
                 .setTimestamp();
 
             await interaction.editReply({
-                content: "Voici les statistiques du joueur :",
-                embeds: [embed],
-                ephemeral: false
+                content: "🎯 Voici les statistiques du joueur :",
+                embeds: [embed]
             });
 
         } catch (error) {
