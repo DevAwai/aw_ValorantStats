@@ -1,5 +1,4 @@
 const { SlashCommandBuilder, EmbedBuilder } = require("discord.js");
-const axios = require("axios");
 const { API } = require('vandal.js');
 
 module.exports = {
@@ -19,10 +18,10 @@ module.exports = {
     async execute(interaction) {
         const pseudo = interaction.options.getString("pseudo");
 
-        if (!pseudo.includes("#")) {
+        if (!pseudo.match(/^.+#[0-9A-Za-z]{3,5}$/)) {
             return interaction.reply({
-                content: "❌ Format invalide ! Utilise : `Pseudo#Tag`",
-                ephemeral: false
+                content: "❌ Format invalide ! Utilise : `Pseudo#Tag` (exemple : `Player#1234`)",
+                ephemeral: true
             });
         }
 
@@ -35,23 +34,29 @@ module.exports = {
 
             if (!user) {
                 return interaction.editReply({
-                    content: "❌ Joueur non trouvé ou API indisponible.",
-                    ephemeral: false
+                    content: "❌ Joueur non trouvé. Vérifie le pseudo et le tag.",
+                    ephemeral: true
                 });
             }
 
             const userInfo = user.info();
             const rank = userInfo.rank || "Inconnu";
             const peakRank = userInfo.peakRank || "Inconnu";
-            const pageViews = userInfo.pageViews || "N/A";
+            const winRate = userInfo.winRate || "N/A";
+            const matchesPlayed = userInfo.matchesPlayed || "N/A";
+            const avatarURL = userInfo.avatar;
 
             const embed = new EmbedBuilder()
                 .setTitle(`📊 Stats de ${gameName}#${tagLine}`)
                 .setColor("Blue")
+                .setThumbnail(avatarURL) 
                 .addFields(
                     { name: "🏆 Rang actuel", value: rank, inline: true },
-                    { name: "🚀 Peak Rank", value: peakRank, inline: false },
+                    { name: "🚀 Peak Rank", value: peakRank, inline: true },
+                    { name: "📈 Taux de victoire", value: winRate, inline: true },
+                    { name: "🎮 Parties jouées", value: matchesPlayed.toString(), inline: true }
                 )
+                .setFooter({ text: "Statistiques fournies par Vandal.js" })
                 .setTimestamp();
 
             await interaction.editReply({
@@ -61,10 +66,10 @@ module.exports = {
             });
 
         } catch (error) {
-            console.error(error);
-            return interaction.editReply({
-                content: "❌ Erreur lors de la récupération des données.",
-                ephemeral: false
+            console.error("Erreur lors de la récupération des données :", error);
+            await interaction.editReply({
+                content: "❌ Une erreur est survenue lors de la récupération des données. Réessaie plus tard.",
+                ephemeral: true
             });
         }
     }
