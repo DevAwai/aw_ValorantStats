@@ -16,21 +16,21 @@ module.exports = {
     ],
 
     async execute(interaction) {
-        const RIOT_API_KEY = "RGAPI-f3507647-901a-4130-92e1-0c6754b946e9"; // Remplace avec ta propre clé API
+        const RIOT_API_KEY = "RGAPI-f3507647-901a-4130-92e1-0c6754b946e9";
         const pseudo = interaction.options.getString("pseudo");
 
         // Vérification du format
         if (!pseudo.includes("#")) {
             return interaction.reply({
                 content: "❌ Format invalide ! Utilise : `Pseudo#Tag`",
-                ephemeral: false // 🔹 Réponse visible par tout le monde
+                ephemeral: false
             });
         }
 
         const [gameName, tagLine] = pseudo.split("#");
 
         try {
-            await interaction.deferReply(); // Permet d'éviter le timeout Discord
+            await interaction.deferReply();
 
             // 🔹 Récupération du PUUID du joueur
             const accountUrl = `https://europe.api.riotgames.com/riot/account/v1/accounts/by-riot-id/${gameName}/${tagLine}?api_key=${RIOT_API_KEY}`;
@@ -39,34 +39,34 @@ module.exports = {
             if (accountRes.status !== 200) {
                 return interaction.editReply({
                     content: "❌ Joueur non trouvé ou API indisponible.",
-                    ephemeral: false // 🔹 Réponse visible par tout le monde
+                    ephemeral: false
                 });
             }
 
             const puuid = accountRes.data.puuid;
 
-            // 🔹 Récupération des actes en cours
+           
             const actUrl = `https://eu.api.riotgames.com/val/ranked/v1/acts?api_key=${RIOT_API_KEY}`;
             const actRes = await axios.get(actUrl);
 
             if (actRes.status !== 200 || actRes.data.length === 0) {
                 return interaction.editReply({
                     content: "❌ Impossible de récupérer les informations des actes.",
-                    ephemeral: false // 🔹 Réponse visible par tout le monde
+                    ephemeral: false
                 });
             }
 
-            // 🔹 Récupération de l'act-id (le premier acte en cours)
+            
             const actId = actRes.data[0].id;
 
-            // 🔹 Récupération des stats du joueur pour cet acte
+            
             const statsUrl = `https://api.riotgames.com/val/ranked/v1/leaderboards/by-act/${actId}?puuid=${puuid}&api_key=${RIOT_API_KEY}`;
             const statsRes = await axios.get(statsUrl);
 
             if (statsRes.status !== 200) {
                 return interaction.editReply({
                     content: "❌ Impossible de récupérer les stats du joueur.",
-                    ephemeral: false // 🔹 Réponse visible par tout le monde
+                    ephemeral: false 
                 });
             }
 
@@ -75,7 +75,7 @@ module.exports = {
             const wins = stats.wins || "N/A";
             const kd = stats.kdRatio || "N/A";
 
-            // 🔹 Création de l'embed
+          
             const embed = new EmbedBuilder()
                 .setTitle(`📊 Stats de ${gameName}#${tagLine}`)
                 .setColor("Blue")
@@ -86,18 +86,18 @@ module.exports = {
                 )
                 .setTimestamp();
 
-            // 🔹 Réponse visible par tous avec un embed
+            
             await interaction.editReply({
                 content: "Voici les statistiques du joueur :",
                 embeds: [embed],
-                ephemeral: false // 🔹 Réponse visible par tout le monde
+                ephemeral: false 
             });
 
         } catch (error) {
             console.error(error);
             return interaction.editReply({
                 content: "❌ Erreur lors de la récupération des données.",
-                ephemeral: false // 🔹 Réponse visible par tout le monde
+                ephemeral: false
             });
         }
     }
