@@ -56,19 +56,6 @@ module.exports = {
             });
         }
 
-        if (pseudo.toLowerCase() === "moraisn#3025") {
-            const trollEmbed = new EmbedBuilder()
-                .setTitle("🚫 Pas besoin de vérifier !")
-                .setColor("Red")
-                .setDescription("Tout le monde sait que **Moraisn#3025** est nul... 😂")
-                .setImage("https://media.tenor.com/UllMEu4hWl4AAAAM/clown.gif")
-                .setFooter({ text: "Allez, retourne t'entraîner fdp." });
-
-            return interaction.reply({
-                embeds: [trollEmbed],
-                ephemeral: false
-            });
-        }
 
         const [gameName, tagLine] = pseudo.split("#");
 
