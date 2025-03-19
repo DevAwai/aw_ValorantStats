@@ -2,6 +2,30 @@ const { SlashCommandBuilder, EmbedBuilder } = require("discord.js");
 const { API } = require("vandal.js");
 const cooldowns = new Map();
 
+const rankTranslations = {
+    "iron": "Fer",
+    "bronze": "Bronze",
+    "silver": "Argent",
+    "gold": "Or",
+    "platinum": "Platine",
+    "diamond": "Diamant",
+    "ascendant": "Ascendant",
+    "immortal": "Immortel",
+    "radiant": "Radiant"
+};
+
+const rankColors = {
+    "fer": "#9F9F9F",
+    "bronze": "#CD7F32",
+    "argent": "#C0C0C0",
+    "or": "#FFD700",
+    "platine": "#00FFFF",
+    "diamant": "#00BFFF",
+    "ascendant": "#4B0082",
+    "immortel": "#DC143C",
+    "radiant": "#FFFF00"
+};
+
 module.exports = {
     name: "stats",
     description: "Affiche les statistiques d'un joueur Valorant",
@@ -94,22 +118,13 @@ module.exports = {
                 const rankedPlayed = rankedStats.matchesPlayed ? Number(rankedStats.matchesPlayed) : 0;
                 const unrankedPlayed = unrankedStats.matchesPlayed ? Number(unrankedStats.matchesPlayed) : 0;
                 const totalPlayed = rankedPlayed + unrankedPlayed || "Inconnu";
+                const cleanRank = rank.toLowerCase().replace(/[^a-z]/g, ""); 
 
-                const rankColors = {
-                    "Fer": "#9F9F9F",
-                    "Bronze": "#CD7F32",
-                    "Argent": "#C0C0C0",
-                    "Or": "#FFD700",
-                    "Platine": "#00FFFF",
-                    "Diamant": "#00BFFF",
-                    "Ascendant": "#4B0082",
-                    "Immortel": "#DC143C",
-                    "Radiant": "#FFFF00"
-                };
+                const translatedRank = rankTranslations[cleanRank] || "Non classé";
 
                 let embedColor = "Blue";
                 for (const key in rankColors) {
-                    if (rank.includes(key)) {
+                    if (translatedRank.toLowerCase().includes(key)) {
                         embedColor = rankColors[key];
                         break;
                     }
@@ -121,7 +136,7 @@ module.exports = {
                     .setThumbnail(avatarURL)
                     .setImage(bannerURL)
                     .addFields(
-                        { name: "🏆 Rang Actuel", value: `**${rank}**`, inline: true },
+                        { name: "🏆 Rang Actuel", value: `**${translatedRank}**`, inline: true },
                         { name: "🚀 Peak Rank", value: `**${peakRank}**`, inline: true }
                     )
                     .addFields(
