@@ -1,5 +1,6 @@
-const { SlashCommandBuilder, EmbedBuilder } = require("discord.js");
+const { SlashCommandBuilder } = require("discord.js");
 const { loadTrackedPlayers, saveTrackedPlayers } = require("../utils/trackedPlayers");
+const { handleError } = require("../utils/errorHandler");
 
 module.exports = {
     name: "addsuivi",
@@ -29,7 +30,7 @@ module.exports = {
                 });
             }
 
-            trackedPlayers.push({ name, tag, lastMatchesPlayed: 0 });
+            trackedPlayers.push({ name, tag, lastMatchesPlayed: 0, lastMatchesWon: 0, lastMatchesLost: 0 });
             saveTrackedPlayers(trackedPlayers);
 
             await interaction.reply({
@@ -37,15 +38,7 @@ module.exports = {
                 ephemeral: true
             });
         } catch (error) {
-            console.error("❌ Erreur API :", error);
-
-            const errorEmbed = new EmbedBuilder()
-                .setTitle("⚠️ Erreur API")
-                .setColor("Red")
-                .setDescription(`\`\`\`js\n${error.stack?.slice(0, 1000) || error.message}\n\`\`\``)
-                .setFooter({ text: "Réessaie plus tard ou contacte le support." });
-
-            await interaction.editReply({ embeds: [errorEmbed] });
+            await handleError(interaction, error);
         }
     }
 };
