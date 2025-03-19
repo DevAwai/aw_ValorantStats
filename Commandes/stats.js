@@ -20,17 +20,19 @@ module.exports = {
     async execute(interaction) {
         const userId = interaction.user.id;
         const cooldownTime = this.cooldown * 1000;
+
         if (cooldowns.has(userId)) {
             const remainingTime = cooldowns.get(userId) - Date.now();
             if (remainingTime > 0) {
                 return interaction.reply({
-                    content: `⏳ **Fils De Pute !** Attends avant de refaire !`,
+                    content: `⏳ **Fils De Pute !** Attends ${(remainingTime / 1000).toFixed(1)} seconde(s) avant de refaire !`,
                     ephemeral: true
                 });
             }
         }
 
         cooldowns.set(userId, Date.now() + cooldownTime);
+
         setTimeout(() => cooldowns.delete(userId), cooldownTime);
 
         const pseudo = interaction.options.getString("pseudo");
@@ -62,7 +64,7 @@ module.exports = {
             await interaction.deferReply();
 
             const user = await API.fetchUser(gameName, tagLine);
-            console.log("API Response (Raw):", user._raw);
+            console.log("API Response (Raw):", user?._raw || "No raw data");
 
             if (!user) {
                 return interaction.editReply({
@@ -144,13 +146,12 @@ module.exports = {
                     .setTitle("⚠️ Erreur lors du traitement des données")
                     .setColor("Red")
                     .setDescription(
-                        `\`\`\`js\n${dataError.stack.slice(0, 1000)}\n\`\`\``
+                        `\`\`\`js\n${dataError.stack?.slice(0, 1000) || dataError.message}\n\`\`\``
                     )
                     .setFooter({ text: "Si le problème persiste, contacte un administrateur." });
 
                 await interaction.editReply({ embeds: [errorEmbed], ephemeral: true });
             }
-
         } catch (apiError) {
             console.error("❌ Erreur API :", apiError);
 
@@ -158,7 +159,7 @@ module.exports = {
                 .setTitle("⚠️ Erreur lors de la connexion à l'API")
                 .setColor("Red")
                 .setDescription(
-                    `\`\`\`js\n${apiError.stack.slice(0, 1000)}\n\`\`\``
+                    `\`\`\`js\n${apiError.stack?.slice(0, 1000) || apiError.message}\n\`\`\``
                 )
                 .setFooter({ text: "Réessaie plus tard ou contacte le support." });
 
