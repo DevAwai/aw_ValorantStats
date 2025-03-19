@@ -10,7 +10,7 @@ const rankColors = {
     "ascendant": "#4B0082", "immortal": "#DC143C", "radiant": "#FFFF00"
 };
 
-const trackedPlayersPath = path.join(__dirname, "F:\Valorant-Stats\suivi_joueurs.json");
+const trackedPlayersPath = path.join(__dirname, "..", "suivi_joueurs.json");
 
 function loadTrackedPlayers() {
     if (!fs.existsSync(trackedPlayersPath)) {
@@ -23,6 +23,7 @@ function saveTrackedPlayers(players) {
     fs.writeFileSync(trackedPlayersPath, JSON.stringify(players, null, 2));
 }
 
+// CHECK DES GAMES TOUTES LES X TEMPS
 async function checkForNewGames(client) {
     const trackedPlayers = loadTrackedPlayers();
     for (const player of trackedPlayers) {
@@ -57,6 +58,8 @@ async function checkForNewGames(client) {
     saveTrackedPlayers(trackedPlayers);
 }
 
+//----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+
 module.exports = {
     name: "stats",
     description: "Affiche les statistiques d'un joueur Valorant",
@@ -89,7 +92,7 @@ module.exports = {
 
         if (!pseudo.match(/^.+#[0-9A-Za-z]{3,5}$/)) {
             return interaction.reply({
-                content: "❌ **Format invalide !** Utilise : `Pseudo#Tag` (ex: `Player#1234`)",
+                content: "❌ **Format invalide !** Utilise : `Pseudo#Tag` (ex: `Player#1234`)`",
                 ephemeral: true
             });
         }
@@ -199,6 +202,4 @@ module.exports = {
     }
 };
 
-setInterval(() => {
-    checkForNewGames(client);
-}, 60000);
+module.exports.checkForNewGames = checkForNewGames;
