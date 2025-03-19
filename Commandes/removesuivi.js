@@ -1,4 +1,5 @@
 const { SlashCommandBuilder } = require("discord.js");
+const { loadTrackedPlayers, saveTrackedPlayers } = require("../utils/trackedPlayers");
 
 module.exports = {
     name: "removesuivi",
