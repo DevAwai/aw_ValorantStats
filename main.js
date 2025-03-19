@@ -16,5 +16,5 @@ bot.once('ready', () => {
     setInterval(() => {
         checkForNewGames(bot);
         console.log("Vérification faite !");
-    }, 60000);
+    }, 3600000);
 });
