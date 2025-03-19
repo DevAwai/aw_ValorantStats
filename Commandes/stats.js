@@ -25,6 +25,20 @@ module.exports = {
             });
         }
 
+        if (pseudo.toLowerCase() === "moraisn#3025") {
+            const trollEmbed = new EmbedBuilder()
+                .setTitle("🚫 Pas besoin de vérifier !")
+                .setColor("Red")
+                .setDescription("Tout le monde sait que **Moraisn#3025** est nul... 😂")
+                .setImage("https://media.tenor.com/UllMEu4hWl4AAAAM/clown.gif")
+                .setFooter({ text: "Allez, retourne t'entraîner fdp." });
+
+            return interaction.reply({
+                embeds: [trollEmbed],
+                ephemeral: true
+            });
+        }
+
         const [gameName, tagLine] = pseudo.split("#");
 
         try {
@@ -51,7 +65,7 @@ module.exports = {
                 console.log("General Stats:", generalStats);
 
                 const avatarURL = userInfo.avatar || "https://example.com/default-avatar.png";
-                const bannerURL = userInfo.card || "https://media.valorant-api.com/playercards/99fbf62b-4dbe-4edb-b4dc-89b4a56df7aa.png"; 
+                const bannerURL = userInfo.card || "https://media.valorant-api.com/playercards/99fbf62b-4dbe-4edb-b4dc-89b4a56df7aa.png";
                 const rank = userInfo.rank || "Non classé";
                 const peakRank = userInfo.peakRank || "Inconnu";
                 const rankedKD = rankedStats.kDRatio ? rankedStats.kDRatio.toFixed(2) : "0.00";
