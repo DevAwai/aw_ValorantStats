@@ -1,11 +1,13 @@
 const { SlashCommandBuilder, EmbedBuilder } = require("discord.js");
 const { API } = require("vandal.js");
+const cooldowns = new Map();
 
 module.exports = {
     name: "stats",
     description: "Affiche les statistiques d'un joueur Valorant",
     permissions: "Aucune",
     dm: false,
+    cooldown: 10,
     options: [
         {
             type: "string",
@@ -16,6 +18,21 @@ module.exports = {
     ],
 
     async execute(interaction) {
+        const userId = interaction.user.id;
+        const cooldownTime = this.cooldown * 1000;
+        if (cooldowns.has(userId)) {
+            const remainingTime = cooldowns.get(userId) - Date.now();
+            if (remainingTime > 0) {
+                return interaction.reply({
+                    content: `⏳ **Fils De Pute !** Attends avant de refaire !`,
+                    ephemeral: true
+                });
+            }
+        }
+
+        cooldowns.set(userId, Date.now() + cooldownTime);
+        setTimeout(() => cooldowns.delete(userId), cooldownTime);
+
         const pseudo = interaction.options.getString("pseudo");
 
         if (!pseudo.match(/^.+#[0-9A-Za-z]{3,5}$/)) {
