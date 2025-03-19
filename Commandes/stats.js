@@ -20,7 +20,7 @@ module.exports = {
 
         if (!pseudo.match(/^.+#[0-9A-Za-z]{3,5}$/)) {
             return interaction.reply({
-                content: "❌ Format invalide ! Utilise : `Pseudo#Tag` (exemple : `Player#1234`)",
+                content: "❌ **Format invalide !**\nUtilise : `Pseudo#Tag` (exemple : `Player#1234`)",
                 ephemeral: true
             });
         }
@@ -34,76 +34,100 @@ module.exports = {
 
             if (!user) {
                 return interaction.editReply({
-                    content: "❌ Joueur non trouvé. Vérifie le pseudo et le tag.",
+                    content: "❌ **Joueur introuvable !**\nVérifie que le pseudo et le tag sont corrects.",
                     ephemeral: true
                 });
             }
 
-            const userInfo = user.info();
-            const rankedStats = user.ranked();
-            const unrakedStats = user.unrated() || {}; 
-            const generalStats = user.gamemodes();
-//---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
-            const avatarURL = userInfo.avatar;
-            const bannerURL = userInfo.card || "https://media.valorant-api.com/playercards/99fbf62b-4dbe-4edb-b4dc-89b4a56df7aa.png"; 
-            const rank = userInfo.rank || "Non classé";
-            const peakRank = userInfo.peakRank || "Inconnu";
-            const rankedKD = rankedStats.kDRatio || 0;
-            const rankedKills = rankedStats.kills || 0;
-            const rankedHeadshots = rankedStats.headshotsPercentage || 0;
-            const totalKills = generalStats?.kills || "Inconnu";
-            const rankedplayed = Number(rankedStats.matchesPlayed) || 0; 
-            const unrankedplayed = Number(unrakedStats.matchesPlayed) || 0;
-            const totalplayed = rankedplayed + unrankedplayed;
+            try {
+                const userInfo = user.info();
+                const rankedStats = user.ranked() || {};
+                const unrankedStats = user.unrated() || {};
+                const generalStats = user.gamemodes() || {};
 
-            const rankColors = {
-                "Fer": "#9F9F9F",
-                "Bronze": "#CD7F32",
-                "Argent": "#C0C0C0",
-                "Or": "#FFD700",
-                "Platine": "#00FFFF",
-                "Diamant": "#00BFFF",
-                "Ascendant": "#4B0082",
-                "Immortel": "#DC143C",
-                "Radiant": "#FFFF00"
-            };
+                const avatarURL = userInfo.avatar || "https://example.com/default-avatar.png";
+                const bannerURL = userInfo.card || "https://media.valorant-api.com/playercards/99fbf62b-4dbe-4edb-b4dc-89b4a56df7aa.png"; 
+                const rank = userInfo.rank || "Non classé";
+                const peakRank = userInfo.peakRank || "Inconnu";
+                const rankedKD = rankedStats.kDRatio ? rankedStats.kDRatio.toFixed(2) : "0.00";
+                const rankedKills = rankedStats.kills || 0;
+                const rankedHeadshots = rankedStats.headshotsPercentage ? `${rankedStats.headshotsPercentage.toFixed(2)}%` : "0%";
+                const totalKills = generalStats.kills || "Inconnu";
+                const rankedPlayed = rankedStats.matchesPlayed ? Number(rankedStats.matchesPlayed) : 0;
+                const unrankedPlayed = unrankedStats.matchesPlayed ? Number(unrankedStats.matchesPlayed) : 0;
+                const totalPlayed = rankedPlayed + unrankedPlayed;
 
-            let embedColor = "Blue";
-            Object.keys(rankColors).forEach((key) => {
-                if (rank.includes(key)) embedColor = rankColors[key];
-            });
+                const rankColors = {
+                    "Fer": "#9F9F9F",
+                    "Bronze": "#CD7F32",
+                    "Argent": "#C0C0C0",
+                    "Or": "#FFD700",
+                    "Platine": "#00FFFF",
+                    "Diamant": "#00BFFF",
+                    "Ascendant": "#4B0082",
+                    "Immortel": "#DC143C",
+                    "Radiant": "#FFFF00"
+                };
 
-            const embed = new EmbedBuilder()
-                .setTitle(`📊 Valorant Stats - ${gameName}#${tagLine}`)
-                .setColor(embedColor)
-                .setThumbnail(avatarURL)
-                .setImage(bannerURL)
-                .addFields(
-                    { name: "🏆 Rang Actuel", value: `**${rank}**`, inline: true },
-                    { name: "🚀 Peak Rank", value: `**${peakRank}**`, inline: true },
+                let embedColor = "Blue";
+                for (const key in rankColors) {
+                    if (rank.includes(key)) {
+                        embedColor = rankColors[key];
+                        break;
+                    }
+                }
+
+                const embed = new EmbedBuilder()
+                    .setTitle(`📊 Valorant Stats - ${gameName}#${tagLine}`)
+                    .setColor(embedColor)
+                    .setThumbnail(avatarURL)
+                    .setImage(bannerURL)
+                    .addFields(
+                        { name: "🏆 Rang Actuel", value: `**${rank}**`, inline: true },
+                        { name: "🚀 Peak Rank", value: `**${peakRank}**`, inline: true }
+                    )
+                    .addFields(
+                        { name: "🔫 K/D Ratio (Ranked)", value: `**${rankedKD}**`, inline: true },
+                        { name: "💀 Kills (Ranked)", value: `**${rankedKills}**`, inline: true },
+                        { name: "🎯 Headshot % (Ranked)", value: `**${rankedHeadshots}**`, inline: true }
+                    )
+                    .addFields(
+                        { name: "🎮 Parties Jouées (Total)", value: `**${totalPlayed}**`, inline: true },
+                        { name: "💀 Kills (Total)", value: `**${totalKills}**`, inline: true }
+                    )
+                    .setTimestamp();
+
+                await interaction.editReply({
+                    content: "🎯 Voici les statistiques du joueur :",
+                    embeds: [embed]
+                });
+                // Gestion des erreurs
+            } catch (dataError) {
+                console.error("❌ Erreur lors du traitement des données :", dataError);
+
+                const errorEmbed = new EmbedBuilder()
+                    .setTitle("⚠️ Erreur lors du traitement des données")
+                    .setColor("Red")
+                    .setDescription(
+                        `\`\`\`js\n${dataError.stack.slice(0, 1000)}\n\`\`\``
+                    )
+                    .setFooter({ text: "Si le problème persiste, contacte un administrateur." });
+
+                await interaction.editReply({ embeds: [errorEmbed], ephemeral: true });
+            }
+
+        } catch (apiError) {
+            console.error("❌ Erreur API :", apiError);
+
+            const errorEmbed = new EmbedBuilder()
+                .setTitle("⚠️ Erreur lors de la connexion à l'API")
+                .setColor("Red")
+                .setDescription(
+                    `\`\`\`js\n${apiError.stack.slice(0, 1000)}\n\`\`\``
                 )
-                .addFields(
-                    { name: "🔫 K/D Ratio (Ranked)", value: `**${rankedKD.toFixed(2)}**`, inline: true },
-                    { name: "💀 Kills (Ranked)", value: `**${rankedKills}**`, inline: true },
-                    { name: "🎯 Headshot % (Ranked)", value: `**${rankedHeadshots.toFixed(2)}%**`, inline: true }
-                )
-                .addFields(
-                    { name: "🎮 Parties Jouées (Total)", value: `**${totalplayed}**`, inline: true },
-                    { name: "💀 Kills (Total)", value: `**${totalKills}**`, inline: true }
-                )
-                .setTimestamp();
+                .setFooter({ text: "Réessaie plus tard ou contacte le support." });
 
-            await interaction.editReply({
-                content: "🎯 Voici les statistiques du joueur :",
-                embeds: [embed]
-            });
-
-        } catch (error) {
-            console.error("Erreur lors de la récupération des données :", error);
-            await interaction.editReply({
-                content: "❌ Une erreur est survenue lors de la récupération des données. Réessaie plus tard.",
-                ephemeral: true
-            });
+            await interaction.editReply({ embeds: [errorEmbed], ephemeral: true });
         }
     }
 };
