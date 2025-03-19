@@ -31,7 +31,7 @@ module.exports = {
             await interaction.deferReply();
 
             const user = await API.fetchUser(gameName, tagLine);
-            console.log("API Response (Raw):", user._raw);
+            console.log("API Response (Raw):", user?._raw);
 
             if (!user) {
                 return interaction.editReply({
@@ -41,28 +41,30 @@ module.exports = {
             }
 
             try {
-                const userInfo = user && user.info ? user.info() : {};
-                const rankedStats = user && user.ranked ? user.ranked() : {};
-                const unrankedStats = user && user.unrated ? user.unrated() : {};
-                const generalStats = user && user.gamemodes ? user.gamemodes() : {};
-            
+                const userInfo = user.data.userInfo || {};
+                const metadata = user.data.metadata || {};
+                const rankedStats = user.data.segments.find(segment => segment.type === 'ranked') || {};
+                const unrankedStats = user.data.segments.find(segment => segment.type === 'unrated') || {};
+                const generalStats = user.data.segments.find(segment => segment.type === 'general') || {};
+
+                console.log("User Info:", userInfo);
                 console.log("Ranked Stats:", rankedStats);
                 console.log("Unranked Stats:", unrankedStats);
                 console.log("General Stats:", generalStats);
-            
-                const avatarURL = userInfo.avatar || "https://example.com/default-avatar.png";
-                const bannerURL = userInfo.card || "https://media.valorant-api.com/playercards/99fbf62b-4dbe-4edb-b4dc-89b4a56df7aa.png";
-                const rank = userInfo.rank || "Non classé";
-                const peakRank = userInfo.peakRank || "Inconnu";
-            
-                const rankedKD = rankedStats.kDRatio ? rankedStats.kDRatio.toFixed(2) : "0.00";
-                const rankedKills = rankedStats.kills || 0;
-                const rankedHeadshots = rankedStats.headshotsPercentage ? `${rankedStats.headshotsPercentage.toFixed(2)}%` : "0%";
-                const totalKills = generalStats.kills || "Inconnu";
-                const rankedPlayed = rankedStats.matchesPlayed ? Number(rankedStats.matchesPlayed) : 0;
-                const unrankedPlayed = unrankedStats.matchesPlayed ? Number(unrankedStats.matchesPlayed) : 0;
+
+                const avatarURL = userInfo.avatarUrl || "https://example.com/default-avatar.png";
+                const bannerURL = metadata.bannerUrl || "https://media.valorant-api.com/playercards/99fbf62b-4dbe-4edb-b4dc-89b4a56df7aa.png";
+                const rank = metadata.rank || "Non classé";
+                const peakRank = metadata.peakRank || "Inconnu";
+
+                const rankedKD = rankedStats.stats.kDRatio ? rankedStats.stats.kDRatio.value.toFixed(2) : "0.00";
+                const rankedKills = rankedStats.stats.kills ? rankedStats.stats.kills.value : 0;
+                const rankedHeadshots = rankedStats.stats.headshotsPercentage ? `${rankedStats.stats.headshotsPercentage.value.toFixed(2)}%` : "0%";
+                const totalKills = generalStats.stats.kills ? generalStats.stats.kills.value : "Inconnu";
+                const rankedPlayed = rankedStats.stats.matchesPlayed ? Number(rankedStats.stats.matchesPlayed.value) : 0;
+                const unrankedPlayed = unrankedStats.stats.matchesPlayed ? Number(unrankedStats.stats.matchesPlayed.value) : 0;
                 const totalPlayed = rankedPlayed + unrankedPlayed || "Inconnu";
-            
+
                 const rankColors = {
                     "Fer": "#9F9F9F",
                     "Bronze": "#CD7F32",
@@ -74,7 +76,7 @@ module.exports = {
                     "Immortel": "#DC143C",
                     "Radiant": "#FFFF00"
                 };
-            
+
                 let embedColor = "Blue";
                 for (const key in rankColors) {
                     if (rank.includes(key)) {
@@ -82,7 +84,7 @@ module.exports = {
                         break;
                     }
                 }
-            
+
                 const embed = new EmbedBuilder()
                     .setTitle(`📊 Valorant Stats - ${gameName}#${tagLine}`)
                     .setColor(embedColor)
@@ -102,14 +104,14 @@ module.exports = {
                         { name: "💀 Kills (Total)", value: `**${totalKills}**`, inline: true }
                     )
                     .setTimestamp();
-            
+
                 await interaction.editReply({
                     content: "🎯 Voici les statistiques du joueur :",
                     embeds: [embed]
                 });
             } catch (dataError) {
                 console.error("❌ Erreur lors du traitement des données :", dataError);
-            
+
                 const errorEmbed = new EmbedBuilder()
                     .setTitle("⚠️ Erreur lors du traitement des données")
                     .setColor("Red")
@@ -117,7 +119,7 @@ module.exports = {
                         `\`\`\`js\n${dataError.stack.slice(0, 1000)}\n\`\`\``
                     )
                     .setFooter({ text: "Si le problème persiste, contacte un administrateur." });
-            
+
                 await interaction.editReply({ embeds: [errorEmbed], ephemeral: true });
             }
 
