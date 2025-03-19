@@ -91,7 +91,7 @@ module.exports = {
                 const unrankedStats = user.unrated() || {};
                 const generalStats = user.gamemodes() || {};
 
-                console.log(JSON.stringify(generalStats, null, 2))
+                console.log("Unranked Stats:", user.gamemodes());
 
                 const avatarURL = userInfo.avatar || "https://example.com/default-avatar.png";
                 const bannerURL = userInfo.card || "https://media.valorant-api.com/playercards/99fbf62b-4dbe-4edb-b4dc-89b4a56df7aa.png";
@@ -100,9 +100,6 @@ module.exports = {
                 const rankedKD = rankedStats.kDRatio ? rankedStats.kDRatio.toFixed(2) : "0.00";
                 const rankedKills = rankedStats.kills || 0;
                 const rankedHeadshots = rankedStats.headshotsPercentage ? `${rankedStats.headshotsPercentage.toFixed(2)}%` : "0%";
-
-                let totalKills = generalStats.Competitive?.kills || "Inconnu";
-
                 const rankedPlayed = rankedStats.matchesPlayed ? Number(rankedStats.matchesPlayed) : 0;
                 const unrankedPlayed = unrankedStats.matchesPlayed ? Number(unrankedStats.matchesPlayed) : 0;
                 const totalPlayed = rankedPlayed + unrankedPlayed || "Inconnu";
