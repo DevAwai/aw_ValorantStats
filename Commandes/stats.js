@@ -1,17 +1,11 @@
-const { SlashCommandBuilder, EmbedBuilder } = require("discord.js");
+const { SlashCommandBuilder, EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle } = require("discord.js");
 const { API } = require("vandal.js");
 const cooldowns = new Map();
 
 const rankColors = {
-    "iron": "#9F9F9F",       // Fer
-    "bronze": "#CD7F32",     // Bronze
-    "silver": "#C0C0C0",     // Argent
-    "gold": "#FFD700",       // Or
-    "platinum": "#00FFFF",   // Platine
-    "diamond": "#00BFFF",    // Diamant
-    "ascendant": "#4B0082",  // Ascendant
-    "immortal": "#DC143C",   // Immortel
-    "radiant": "#FFFF00"     // Radiant
+    "iron": "#9F9F9F", "bronze": "#CD7F32", "silver": "#C0C0C0",
+    "gold": "#FFD700", "platinum": "#00FFFF", "diamond": "#00BFFF",
+    "ascendant": "#4B0082", "immortal": "#DC143C", "radiant": "#FFFF00"
 };
 
 module.exports = {
@@ -31,124 +25,131 @@ module.exports = {
 
     async execute(interaction) {
         const userId = interaction.user.id;
-        const cooldownTime = this.cooldown * 1000; 
+        const cooldownTime = this.cooldown * 1000;
 
-        if (cooldowns.has(userId)) {
-            const remainingTime = cooldowns.get(userId) - Date.now();
-            if (remainingTime > 0) {
-                return interaction.reply({
-                    content: `⏳ **Fils De Pute !** Attends ${(remainingTime / 1000).toFixed(1)} seconde(s) avant de refaire !`,
-                    ephemeral: true
-                });
-            }
+        if (cooldowns.has(userId) && cooldowns.get(userId) > Date.now()) {
+            return interaction.reply({
+                content: `⏳ **Attends un peu !** (${(cooldowns.get(userId) - Date.now()) / 1000}s restantes)`,
+                ephemeral: true
+            });
         }
-
         cooldowns.set(userId, Date.now() + cooldownTime);
-
         setTimeout(() => cooldowns.delete(userId), cooldownTime);
 
         const pseudo = interaction.options.getString("pseudo");
 
         if (!pseudo.match(/^.+#[0-9A-Za-z]{3,5}$/)) {
             return interaction.reply({
-                content: "❌ **Format invalide !**\nUtilise : `Pseudo#Tag` (exemple : `Player#1234`)",
+                content: "❌ **Format invalide !** Utilise : `Pseudo#Tag` (ex: `Player#1234`)",
                 ephemeral: true
             });
         }
 
-
         const [gameName, tagLine] = pseudo.split("#");
 
         try {
-            await interaction.deferReply();
+            await interaction.deferReply(); // Suppression de ephemeral
 
             const user = await API.fetchUser(gameName, tagLine);
-            console.log("API Response (Raw):", user?._raw || "No raw data");
-
             if (!user) {
                 return interaction.editReply({
-                    content: "❌ **Joueur introuvable !**\nVérifie que le pseudo et le tag sont corrects.",
-                    ephemeral: true
+                    content: "❌ **Joueur introuvable !** Vérifie le pseudo et le tag."
                 });
             }
 
-            try {
-                const userInfo = user.info();
-                const rankedStats = user.ranked() || {};
-                const unrankedStats = user.unrated() || {};
-                const generalStats = user.gamemodes() || {};
+            const allGamemodes = user.gamemodes();
+            const userInfo = user.info();
+            const rankedStats = user.ranked() || {};
+            const unrankedStats = allGamemodes["unrated"] || allGamemodes["unranked"] || allGamemodes["normal"] || {};
+            
 
-                console.log("Unranked Stats:", user.gamemodes());
+            const avatarURL = userInfo.avatar || "https://example.com/default-avatar.png";
+            const bannerURL = userInfo.card || "https://media.valorant-api.com/playercards/99fbf62b-4dbe-4edb-b4dc-89b4a56df7aa.png";
+            const rank = userInfo.rank || "Non classé";
+            const peakRank = userInfo.peakRank || "Inconnu";
 
-                const avatarURL = userInfo.avatar || "https://example.com/default-avatar.png";
-                const bannerURL = userInfo.card || "https://media.valorant-api.com/playercards/99fbf62b-4dbe-4edb-b4dc-89b4a56df7aa.png";
-                const rank = userInfo.rank || "Non classé";
-                const peakRank = userInfo.peakRank || "Inconnu";
-                const rankedKD = rankedStats.kDRatio ? rankedStats.kDRatio.toFixed(2) : "0.00";
-                const rankedKills = rankedStats.kills || 0;
-                const rankedHeadshots = rankedStats.headshotsPercentage ? `${rankedStats.headshotsPercentage.toFixed(2)}%` : "0%";
-                const rankedPlayed = rankedStats.matchesPlayed ? Number(rankedStats.matchesPlayed) : 0;
-                const unrankedPlayed = unrankedStats.matchesPlayed ? Number(unrankedStats.matchesPlayed) : 0;
-                const totalPlayed = rankedPlayed + unrankedPlayed || "Inconnu";
+            const cleanRank = rank.toLowerCase().replace(/[^a-z]/g, "");
+            let embedColor = rankColors[cleanRank] || "Blue";
 
-                const cleanRank = rank.toLowerCase().replace(/[^a-z]/g, ""); 
+            const embedRanked = new EmbedBuilder()
+                .setTitle(`🏆 Stats Ranked - ${gameName}#${tagLine}`)
+                .setColor(embedColor)
+                .setThumbnail(avatarURL)
+                .setImage(bannerURL)
+                .setDescription("📊 **Statistiques du mode Ranked**")
+                .addFields(
+                    { name: "🔹 Rang Actuel", value: `**${rank}**`, inline: true },
+                    { name: "🔝 Peak Rank", value: `**${peakRank}**`, inline: true },
+                    { name: "🔫 K/D Ratio", value: `**${rankedStats.kDRatio?.toFixed(2) || "0.00"}**`, inline: true },
+                    { name: "🎯 Headshot %", value: `**${rankedStats.headshotsPercentage?.toFixed(2) || "0"}%**`, inline: true },
+                    { name: "🎮 Parties Jouées", value: `**${rankedStats.matchesPlayed || 0}**`, inline: true },
+                    { name: "💀 Kills", value: `**${rankedStats.kills || 0}**`, inline: true }
+                )
+                .setFooter({ text: "🔹 Mode Ranked", iconURL: avatarURL })
+                .setTimestamp();
 
-                let embedColor = "Blue"; 
-                for (const key in rankColors) {
-                    if (cleanRank.includes(key)) {
-                        embedColor = rankColors[key];
-                        break;
-                    }
+            const embedUnranked = new EmbedBuilder()
+                .setTitle(`🎮 Stats Unranked - ${gameName}#${tagLine}`)
+                .setColor("Grey")
+                .setThumbnail(avatarURL)
+                .setImage(bannerURL)
+                .setDescription("📊 **Statistiques du mode Unranked**")
+                .addFields(
+                    { name: "🔫 K/D Ratio", value: `**${unrankedStats.kDRatio?.toFixed(2) || "0.00"}**`, inline: true },
+                    { name: "🎯 Headshot %", value: `**${unrankedStats.headshotsPercentage?.toFixed(2) || "0"}%**`, inline: true },
+                    { name: "🎮 Parties Jouées", value: `**${unrankedStats.matchesPlayed || 0}**`, inline: true },
+                    { name: "💀 Kills", value: `**${unrankedStats.kills || 0}**`, inline: true }
+                )
+                .setFooter({ text: "🎮 Mode Unranked", iconURL: avatarURL })
+                .setTimestamp();
+
+            const buttons = new ActionRowBuilder().addComponents(
+                new ButtonBuilder()
+                    .setCustomId("ranked_stats")
+                    .setLabel("🏆 Mode Ranked")
+                    .setStyle(ButtonStyle.Success),
+                new ButtonBuilder()
+                    .setCustomId("unranked_stats")
+                    .setLabel("🎮 Mode Unranked")
+                    .setStyle(ButtonStyle.Primary)
+            );
+
+
+            await interaction.editReply({
+                content: `🎯 **Sélectionne le mode de jeu pour voir les stats de** \`${gameName}#${tagLine}\` :`,
+                components: [buttons]
+            });
+
+            const filter = i => i.user.id === interaction.user.id;
+            const collector = interaction.channel.createMessageComponentCollector({ filter, time: 15000 });
+
+            collector.on("collect", async i => {
+                if (i.customId === "ranked_stats") {
+                    await i.update({ embeds: [embedRanked], components: [] });
+                } else if (i.customId === "unranked_stats") {
+                    await i.update({ embeds: [embedUnranked], components: [] });
                 }
+                collector.stop();
+            });
 
-                const embed = new EmbedBuilder()
-                    .setTitle(`📊 Valorant Stats - ${gameName}#${tagLine}`)
-                    .setColor(embedColor)
-                    .setThumbnail(avatarURL)
-                    .setImage(bannerURL)
-                    .addFields(
-                        { name: "🏆 Rang Actuel", value: `**${rank}**`, inline: true },
-                        { name: "🚀 Peak Rank", value: `**${peakRank}**`, inline: true }
-                    )
-                    .addFields(
-                        { name: "🔫 K/D Ratio (Ranked)", value: `**${rankedKD}**`, inline: true },
-                        { name: "🎯 Headshot % (Ranked)", value: `**${rankedHeadshots}**`, inline: true }
-                    )
-                    .addFields(
-                        { name: "🎮 Parties Jouées (Total)", value: `**${totalPlayed}**`, inline: true },
-                        { name: "💀 Kills", value: `**${rankedKills}**`, inline: true }
-                    )
-                    .setTimestamp();
+            collector.on("end", collected => {
+                if (collected.size === 0) {
+                    interaction.editReply({ content: "⏳ **Temps écoulé !**", components: [] });
+                }
+            });
 
-                await interaction.editReply({
-                    content: "🎯 Voici les statistiques du joueur :",
-                    embeds: [embed]
-                });
-            } catch (dataError) {
-                console.error("❌ Erreur lors du traitement des données :", dataError);
-
-                const errorEmbed = new EmbedBuilder()
-                    .setTitle("⚠️ Erreur lors du traitement des données")
-                    .setColor("Red")
-                    .setDescription(
-                        `\`\`\`js\n${dataError.stack?.slice(0, 1000) || dataError.message}\n\`\`\``
-                    )
-                    .setFooter({ text: "Si le problème persiste, contacte un administrateur." });
-
-                await interaction.editReply({ embeds: [errorEmbed], ephemeral: true });
-            }
-        } catch (apiError) {
-            console.error("❌ Erreur API :", apiError);
+        } catch (error) {
+            console.error("❌ Erreur API :", error);
 
             const errorEmbed = new EmbedBuilder()
-                .setTitle("⚠️ Erreur lors de la connexion à l'API")
+                .setTitle("⚠️ Erreur API")
                 .setColor("Red")
-                .setDescription(
-                    `\`\`\`js\n${apiError.stack?.slice(0, 1000) || apiError.message}\n\`\`\``
-                )
+                .setDescription(`\`\`\`js\n${error.stack?.slice(0, 1000) || error.message}\n\`\`\``)
                 .setFooter({ text: "Réessaie plus tard ou contacte le support." });
 
-            await interaction.editReply({ embeds: [errorEmbed], ephemeral: true });
+            await interaction.editReply({ embeds: [errorEmbed] });
         }
+
+        
     }
 };
