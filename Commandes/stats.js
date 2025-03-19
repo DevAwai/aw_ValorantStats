@@ -1,12 +1,61 @@
-const { SlashCommandBuilder, EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle } = require("discord.js");
+const { SlashCommandBuilder, EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle, Client, Intents } = require("discord.js");
 const { API } = require("vandal.js");
-const cooldowns = new Map();
+const fs = require("fs");
+const path = require("path");
 
+const cooldowns = new Map();
 const rankColors = {
     "iron": "#9F9F9F", "bronze": "#CD7F32", "silver": "#C0C0C0",
     "gold": "#FFD700", "platinum": "#00FFFF", "diamond": "#00BFFF",
     "ascendant": "#4B0082", "immortal": "#DC143C", "radiant": "#FFFF00"
 };
+
+const trackedPlayersPath = path.join(__dirname, "F:\Valorant-Stats\suivi_joueurs.json");
+
+function loadTrackedPlayers() {
+    if (!fs.existsSync(trackedPlayersPath)) {
+        fs.writeFileSync(trackedPlayersPath, JSON.stringify([], null, 2));
+    }
+    return JSON.parse(fs.readFileSync(trackedPlayersPath, "utf-8"));
+}
+
+function saveTrackedPlayers(players) {
+    fs.writeFileSync(trackedPlayersPath, JSON.stringify(players, null, 2));
+}
+
+async function checkForNewGames(client) {
+    const trackedPlayers = loadTrackedPlayers();
+    for (const player of trackedPlayers) {
+        try {
+            const user = await API.fetchUser(player.name, player.tag);
+            const rankedStats = user.ranked() || {};
+            const currentMatchesPlayed = rankedStats.matchesPlayed || 0;
+
+            if (currentMatchesPlayed > player.lastMatchesPlayed) {
+                const channel = client.channels.cache.get("1322904141164445727");
+                if (channel) {
+                    const embed = new EmbedBuilder()
+                        .setTitle("🎮 Nouvelle partie détectée !")
+                        .setDescription(`**${player.name}#${player.tag}** a terminé une nouvelle partie en mode Ranked.`)
+                        .addFields(
+                            { name: "🔹 Parties jouées", value: `**${currentMatchesPlayed}**`, inline: true },
+                            { name: "🔹 Rang actuel", value: `**${user.info().rank || "Non classé"}**`, inline: true }
+                        )
+                        .setColor("Green")
+                        .setTimestamp();
+
+                    await channel.send({ embeds: [embed] });
+                }
+
+                player.lastMatchesPlayed = currentMatchesPlayed;
+            }
+        } catch (error) {
+            console.error(`❌ Erreur lors de la vérification des stats de ${player.name}#${player.tag} :`, error);
+        }
+    }
+
+    saveTrackedPlayers(trackedPlayers);
+}
 
 module.exports = {
     name: "stats",
@@ -48,7 +97,7 @@ module.exports = {
         const [gameName, tagLine] = pseudo.split("#");
 
         try {
-            await interaction.deferReply(); // Suppression de ephemeral
+            await interaction.deferReply();
 
             const user = await API.fetchUser(gameName, tagLine);
             if (!user) {
@@ -61,7 +110,6 @@ module.exports = {
             const userInfo = user.info();
             const rankedStats = user.ranked() || {};
             const unrankedStats = allGamemodes["unrated"] || allGamemodes["unranked"] || allGamemodes["normal"] || {};
-            
 
             const avatarURL = userInfo.avatar || "https://example.com/default-avatar.png";
             const bannerURL = userInfo.card || "https://media.valorant-api.com/playercards/99fbf62b-4dbe-4edb-b4dc-89b4a56df7aa.png";
@@ -114,7 +162,6 @@ module.exports = {
                     .setStyle(ButtonStyle.Primary)
             );
 
-
             await interaction.editReply({
                 content: `🎯 **Sélectionne le mode de jeu pour voir les stats de** \`${gameName}#${tagLine}\` :`,
                 components: [buttons]
@@ -149,7 +196,9 @@ module.exports = {
 
             await interaction.editReply({ embeds: [errorEmbed] });
         }
-
-        
     }
 };
+
+setInterval(() => {
+    checkForNewGames(client);
+}, 60000);
