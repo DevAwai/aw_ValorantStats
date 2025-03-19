@@ -31,6 +31,7 @@ module.exports = {
             await interaction.deferReply();
 
             const user = await API.fetchUser(gameName, tagLine);
+            console.log("API Response (Raw):", user._raw);
 
             if (!user) {
                 return interaction.editReply({
@@ -45,6 +46,10 @@ module.exports = {
                 const unrankedStats = user.unrated() || {};
                 const generalStats = user.gamemodes() || {};
 
+                console.log("Ranked Stats:", rankedStats);
+                console.log("Unranked Stats:", unrankedStats);
+                console.log("General Stats:", generalStats);
+
                 const avatarURL = userInfo.avatar || "https://example.com/default-avatar.png";
                 const bannerURL = userInfo.card || "https://media.valorant-api.com/playercards/99fbf62b-4dbe-4edb-b4dc-89b4a56df7aa.png"; 
                 const rank = userInfo.rank || "Non classé";
@@ -55,7 +60,7 @@ module.exports = {
                 const totalKills = generalStats.kills || "Inconnu";
                 const rankedPlayed = rankedStats.matchesPlayed ? Number(rankedStats.matchesPlayed) : 0;
                 const unrankedPlayed = unrankedStats.matchesPlayed ? Number(unrankedStats.matchesPlayed) : 0;
-                const totalPlayed = rankedPlayed + unrankedPlayed;
+                const totalPlayed = rankedPlayed + unrankedPlayed || "Inconnu";
 
                 const rankColors = {
                     "Fer": "#9F9F9F",
@@ -101,7 +106,6 @@ module.exports = {
                     content: "🎯 Voici les statistiques du joueur :",
                     embeds: [embed]
                 });
-                // Gestion des erreurs
             } catch (dataError) {
                 console.error("❌ Erreur lors du traitement des données :", dataError);
 
