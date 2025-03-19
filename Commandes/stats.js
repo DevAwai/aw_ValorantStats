@@ -35,7 +35,7 @@ module.exports = {
 
             return interaction.reply({
                 embeds: [trollEmbed],
-                ephemeral: true
+                ephemeral: false
             });
         }
 
