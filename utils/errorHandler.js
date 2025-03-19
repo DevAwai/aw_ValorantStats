@@ -7,7 +7,7 @@ async function handleError(interaction, error) {
         .setTitle("⚠️ Erreur API")
         .setColor("Red")
         .setDescription(`\`\`\`js\n${error.stack?.slice(0, 1000) || error.message}\n\`\`\``)
-        .setFooter({ text: "Réessaie plus tard ou contacte le support." });
+        .setFooter({ text: "Réessaie plus tard ou @Khalifouille / @Awai" });
 
     if (interaction.replied || interaction.deferred) {
         await interaction.editReply({ embeds: [errorEmbed] });
