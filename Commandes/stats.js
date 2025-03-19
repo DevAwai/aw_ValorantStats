@@ -31,24 +31,33 @@ async function checkForNewGames(client) {
             const user = await API.fetchUser(player.name, player.tag);
             const rankedStats = user.ranked() || {};
             const currentMatchesPlayed = rankedStats.matchesPlayed || 0;
+            const currentMatchesWon = rankedStats.matchesWon || 0;
+            const currentMatchesLost = rankedStats.matchesLost || 0;
 
             if (currentMatchesPlayed > player.lastMatchesPlayed) {
                 const channel = client.channels.cache.get("1322904141164445727");
                 if (channel) {
+                    const lastMatchResult = currentMatchesWon > player.lastMatchesWon ? "Gagné" : "Perdu";
+
                     const embed = new EmbedBuilder()
                         .setTitle("🎮 Nouvelle partie détectée !")
                         .setDescription(`**${player.name}#${player.tag}** a terminé une nouvelle partie en mode Ranked.`)
                         .addFields(
                             { name: "🔹 Parties jouées", value: `**${currentMatchesPlayed}**`, inline: true },
-                            { name: "🔹 Rang actuel", value: `**${user.info().rank || "Non classé"}**`, inline: true }
+                            { name: "🔹 Rang actuel", value: `**${user.info().rank || "Non classé"}**`, inline: true },
+                            { name: "🔹 Résultat du dernier match", value: `**${lastMatchResult}**`, inline: true },
+                            { name: "🏆 Victoires", value: `**${currentMatchesWon}**`, inline: true },
+                            { name: "❌ Défaites", value: `**${currentMatchesLost}**`, inline: true }
                         )
                         .setColor("Green")
                         .setTimestamp();
 
                     await channel.send({ embeds: [embed] });
-                }
 
-                player.lastMatchesPlayed = currentMatchesPlayed;
+                    player.lastMatchesPlayed = currentMatchesPlayed;
+                    player.lastMatchesWon = currentMatchesWon;
+                    player.lastMatchesLost = currentMatchesLost;
+                }
             }
         } catch (error) {
             console.error(`❌ Erreur lors de la vérification des stats de ${player.name}#${player.tag} :`, error);

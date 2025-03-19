@@ -4,11 +4,15 @@ const path = require('path');
 const filePath = path.join(__dirname, '..', 'suivi_joueurs.json');
 
 function loadTrackedPlayers() {
-    if (!fs.existsSync(filePath)) {
-        return [];
+    if (!fs.existsSync(trackedPlayersPath)) {
+        fs.writeFileSync(trackedPlayersPath, JSON.stringify([], null, 2));
     }
-    const data = fs.readFileSync(filePath, 'utf8');
-    return JSON.parse(data);
+    const players = JSON.parse(fs.readFileSync(trackedPlayersPath, "utf-8"));
+    return players.map(player => ({
+        ...player,
+        lastMatchesWon: player.lastMatchesWon || 0,
+        lastMatchesLost: player.lastMatchesLost || 0
+    }));
 }
 
 function saveTrackedPlayers(trackedPlayers) {
