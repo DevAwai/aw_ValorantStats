@@ -2,6 +2,15 @@
   {
     "name": "Khalifouille",
     "tag": "MAR",
-    "lastMatchesPlayed": 21
+    "lastMatchesPlayed": 21,
+    "lastMatchesWon": 1,
+    "lastMatchesLost": 0
+  },
+  {
+    "name": "Awai",
+    "tag": "5529",
+    "lastMatchesPlayed": 20,
+    "lastMatchesWon": 12,
+    "lastMatchesLost": 8
   }
 ]

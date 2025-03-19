@@ -1,7 +1,7 @@
 const fs = require('fs');
 const path = require('path');
 
-const filePath = path.join(__dirname, '..', 'suivi_joueurs.json');
+const trackedPlayersPath = path.join(__dirname, "..", "suivi_joueurs.json");
 
 function loadTrackedPlayers() {
     if (!fs.existsSync(trackedPlayersPath)) {
@@ -15,8 +15,8 @@ function loadTrackedPlayers() {
     }));
 }
 
-function saveTrackedPlayers(trackedPlayers) {
-    fs.writeFileSync(filePath, JSON.stringify(trackedPlayers, null, 2), 'utf8');
+function saveTrackedPlayers(players) {
+    fs.writeFileSync(trackedPlayersPath, JSON.stringify(players, null, 2));
 }
 
 module.exports = { loadTrackedPlayers, saveTrackedPlayers };

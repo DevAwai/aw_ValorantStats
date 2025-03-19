@@ -15,10 +15,12 @@ module.exports = async (bot, interaction) => {
             await command.execute(interaction);
         } catch (error) {
             console.error(error);
-            await interaction.reply({ 
-                content: "❌ Une erreur est survenue lors de l'exécution de la commande.", 
-                ephemeral: false // Tout le monde voit l'erreur aussi
-            });
+            if (!interaction.replied && !interaction.deferred) {
+                await interaction.reply({ 
+                    content: "❌ Une erreur est survenue lors de l'exécution de la commande.", 
+                    ephemeral: false // Tout le monde voit l'erreur aussi
+                });
+            }
         }
     }
 };
