@@ -20,12 +20,13 @@ function updateBotStatus() {
         const joueursSuivis = JSON.parse(data);
         const nombreJoueurs = Object.keys(joueursSuivis).length;
 
-        const statusMessage = `📊 Suivi de ${nombreJoueurs} joueur(s) sur Valorant`;
-        bot.user.setActivity(statusMessage, { type: Discord.ActivityType.Playing });
+        const statusMessage = `${nombreJoueurs} joueur(s) sur Valorant`;
+        bot.user.setActivity(statusMessage, { type: Discord.ActivityType.Watching });
     } catch (error) {
         console.error("Erreur lors de la mise à jour du statut du bot :", error);
     }
 }
+
 
 bot.once('ready', () => {
     console.log(`${bot.user.tag} est en ligne !`);
