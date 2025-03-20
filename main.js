@@ -29,12 +29,7 @@ function updateBotStatus() {
 
 
 bot.once('ready', () => {
-    console.log(`${bot.user.tag} est en ligne !`);
-    
-    
     updateBotStatus();
-
-    
     setInterval(() => {
         checkForNewGames(bot);
         console.log("🔍 Vérification des parties terminée !");
