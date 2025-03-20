@@ -39,5 +39,5 @@ bot.once('ready', () => {
     setInterval(() => {
         updateBotStatus();
         console.log("📢 Statut mis à jour !");
-    }, 60000);
+    }, 10800000);
 });
