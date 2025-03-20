@@ -43,9 +43,18 @@ async function checkForNewGames(client) {
                 if (channel) {
                     const lastMatchResult = currentMatchesWon > player.lastMatchesWon ? "Gagné" : "Perdu";
 
+                    const isDefeat = lastMatchResult === "Perdu";
+                    const embedTitle = isDefeat
+                        ? `WOINP WOIN WOIIIINP, ${player.name}#${player.tag} a perdu 30 minutes de sa vie`
+                        : `🎮 Nouvelle partie détectée !`;
+                    
+                    const embedColor = isDefeat ? "Red" : "Green";
+                    
                     const embed = new EmbedBuilder()
-                        .setTitle("🎮 Nouvelle partie détectée !")
-                        .setDescription(`**${player.name}#${player.tag}** a terminé une nouvelle partie en mode Ranked.`)
+                        .setTitle(embedTitle)
+                        .setDescription(isDefeat
+                            ? `**${player.name}#${player.tag}** vient de perdre en ranked 😢`
+                            : `**${player.name}#${player.tag}** a terminé une nouvelle partie en mode Ranked.`)
                         .addFields(
                             { name: "🔹 Parties jouées", value: `**${currentMatchesPlayed}**`, inline: true },
                             { name: "🔹 Rang actuel", value: `**${user.info().rank || "Non classé"}**`, inline: true },
@@ -53,7 +62,8 @@ async function checkForNewGames(client) {
                             { name: "🏆 Victoires", value: `**${currentMatchesWon}**`, inline: true },
                             { name: "❌ Défaites", value: `**${currentMatchesLost}**`, inline: true }
                         )
-                        .setColor("Green")
+                        .setColor(embedColor)
+                        .setFooter({ text: "Mise à jour automatique" })
                         .setTimestamp();
 
                     await channel.send({ embeds: [embed] });
