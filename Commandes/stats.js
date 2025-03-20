@@ -12,6 +12,10 @@ const rankColors = {
 
 const trackedPlayersPath = path.join(__dirname, "..", "suivi_joueurs.json");
 
+function sleep(ms) {
+    return new Promise(resolve => setTimeout(resolve, ms));
+}
+
 function loadTrackedPlayers() {
     if (!fs.existsSync(trackedPlayersPath)) {
         fs.writeFileSync(trackedPlayersPath, JSON.stringify([], null, 2));
