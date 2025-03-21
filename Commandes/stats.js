@@ -45,7 +45,7 @@ async function checkForNewGames(client) {
 
                     const isDefeat = lastMatchResult === "Perdu";
                     const embedTitle = isDefeat
-                        ? `WOINP WOIN WOIIIINP, ${player.name}#${player.tag} a perdu 30 minutes de sa vie`
+                        ? `🎮 WOINP WOINP WOIIIINP !`
                         : `🎮 Nouvelle partie détectée !`;
                     
                     const embedColor = isDefeat ? "Red" : "Green";
