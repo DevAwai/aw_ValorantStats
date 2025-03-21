@@ -79,7 +79,8 @@ async function checkForNewGames(client) {
 
         await sleep(10000);
     }
-
+    
+    await sleep(10000);
     saveTrackedPlayers(trackedPlayers);
 }
 
