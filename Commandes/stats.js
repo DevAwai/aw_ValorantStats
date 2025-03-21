@@ -51,7 +51,6 @@ async function checkForNewGames(client) {
         let retries = 3;
         while (retries > 0) {
             try {
-                const rank = userInfo.rank || "Non classé";
                 const { rankedStats } = await fetchUserStats(player.name, player.tag);
                 const { matchesPlayed, matchesWon, matchesLost } = rankedStats;
 
@@ -68,7 +67,7 @@ async function checkForNewGames(client) {
                                 : `**${player.name}#${player.tag}** a terminé une nouvelle partie en mode Ranked.`)
                             .addFields(
                                 { name: "🔹 Parties jouées", value: `**${matchesPlayed}**`, inline: true },
-                                { name: "🔹 Rang actuel", value: `**${rank || "Non classé"}**`, inline: true },
+                                { name: "🔹 Rang actuel", value: `**${rankedStats.rank || "Non classé"}**`, inline: true },
                                 { name: "🔹 Résultat du dernier match", value: `**${lastMatchResult}**`, inline: true },
                                 { name: "🏆 Victoires", value: `**${matchesWon}**`, inline: true },
                                 { name: "❌ Défaites", value: `**${matchesLost}**`, inline: true }
@@ -126,7 +125,7 @@ module.exports = {
         if (cooldowns.has(userId) && cooldowns.get(userId) > Date.now()) {
             return interaction.reply({
                 content: `⏳ **Attends un peu !** (${(cooldowns.get(userId) - Date.now()) / 1000}s restantes)`,
-                ephemeral: true
+                flags: 64 
             });
         }
         cooldowns.set(userId, Date.now() + cooldownTime);
@@ -137,7 +136,7 @@ module.exports = {
         if (!pseudo.match(/^.+#[0-9A-Za-z]{3,5}$/)) {
             return interaction.reply({
                 content: "❌ **Format invalide !** Utilise : `Pseudo#Tag` (ex: `Player#1234`)`",
-                ephemeral: true
+                flags: 64 
             });
         }
 
