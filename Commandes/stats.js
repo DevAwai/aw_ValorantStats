@@ -1,4 +1,4 @@
-const { SlashCommandBuilder, EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle, Client, Intents } = require("discord.js");
+const { SlashCommandBuilder, EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle } = require("discord.js");
 const { API } = require("vandal.js");
 const fs = require("fs");
 const path = require("path");
@@ -27,50 +27,58 @@ function saveTrackedPlayers(players) {
     fs.writeFileSync(trackedPlayersPath, JSON.stringify(players, null, 2));
 }
 
-// CHECK DES GAMES TOUTES LES X TEMPS
+async function fetchUserStats(gameName, tagLine) {
+    const user = await API.fetchUser(gameName, tagLine);
+    if (!user) throw new Error("Joueur introuvable");
+
+    const allGamemodes = user.gamemodes();
+    const userInfo = user.info();
+    const rankedStats = user.ranked() || {};
+    const unrankedStats = allGamemodes["unrated"] || allGamemodes["unranked"] || allGamemodes["normal"] || {};
+
+    return {
+        userInfo,
+        rankedStats,
+        unrankedStats,
+        avatarURL: userInfo.avatar || "https://example.com/default-avatar.png",
+        bannerURL: userInfo.card || "https://media.valorant-api.com/playercards/99fbf62b-4dbe-4edb-b4dc-89b4a56df7aa.png"
+    };
+}
+
 async function checkForNewGames(client) {
     const trackedPlayers = loadTrackedPlayers();
     for (const player of trackedPlayers) {
         try {
-            const user = await API.fetchUser(player.name, player.tag);
-            const rankedStats = user.ranked() || {};
-            const currentMatchesPlayed = rankedStats.matchesPlayed || 0;
-            const currentMatchesWon = rankedStats.matchesWon || 0;
-            const currentMatchesLost = rankedStats.matchesLost || 0;
+            const { rankedStats } = await fetchUserStats(player.name, player.tag);
+            const { matchesPlayed, matchesWon, matchesLost } = rankedStats;
 
-            if (currentMatchesPlayed > player.lastMatchesPlayed) {
+            if (matchesPlayed > player.lastMatchesPlayed) {
                 const channel = client.channels.cache.get("1322904141164445727");
                 if (channel) {
-                    const lastMatchResult = currentMatchesWon > player.lastMatchesWon ? "Gagné" : "Perdu";
-
+                    const lastMatchResult = matchesWon > player.lastMatchesWon ? "Gagné" : "Perdu";
                     const isDefeat = lastMatchResult === "Perdu";
-                    const embedTitle = isDefeat
-                        ? `🎮 WOINP WOINP WOIIIINP !`
-                        : `🎮 Nouvelle partie détectée !`;
-                    
-                    const embedColor = isDefeat ? "Red" : "Green";
-                    
+
                     const embed = new EmbedBuilder()
-                        .setTitle(embedTitle)
+                        .setTitle(isDefeat ? "🎮 WOINP WOINP WOIIIINP !" : "🎮 Nouvelle partie détectée !")
                         .setDescription(isDefeat
                             ? `**${player.name}#${player.tag}** vient de perdre en ranked 😢`
                             : `**${player.name}#${player.tag}** a terminé une nouvelle partie en mode Ranked.`)
                         .addFields(
-                            { name: "🔹 Parties jouées", value: `**${currentMatchesPlayed}**`, inline: true },
-                            { name: "🔹 Rang actuel", value: `**${user.info().rank || "Non classé"}**`, inline: true },
+                            { name: "🔹 Parties jouées", value: `**${matchesPlayed}**`, inline: true },
+                            { name: "🔹 Rang actuel", value: `**${rankedStats.rank || "Non classé"}**`, inline: true },
                             { name: "🔹 Résultat du dernier match", value: `**${lastMatchResult}**`, inline: true },
-                            { name: "🏆 Victoires", value: `**${currentMatchesWon}**`, inline: true },
-                            { name: "❌ Défaites", value: `**${currentMatchesLost}**`, inline: true }
+                            { name: "🏆 Victoires", value: `**${matchesWon}**`, inline: true },
+                            { name: "❌ Défaites", value: `**${matchesLost}**`, inline: true }
                         )
-                        .setColor(embedColor)
+                        .setColor(isDefeat ? "Red" : "Green")
                         .setFooter({ text: "Mise à jour automatique" })
                         .setTimestamp();
 
                     await channel.send({ embeds: [embed] });
 
-                    player.lastMatchesPlayed = currentMatchesPlayed;
-                    player.lastMatchesWon = currentMatchesWon;
-                    player.lastMatchesLost = currentMatchesLost;
+                    player.lastMatchesPlayed = matchesPlayed;
+                    player.lastMatchesWon = matchesWon;
+                    player.lastMatchesLost = matchesLost;
                 }
             }
         } catch (error) {
@@ -79,12 +87,9 @@ async function checkForNewGames(client) {
 
         await sleep(10000);
     }
-    
-    await sleep(10000);
+
     saveTrackedPlayers(trackedPlayers);
 }
-
-//----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 
 module.exports = {
     name: "stats",
@@ -128,25 +133,11 @@ module.exports = {
         try {
             await interaction.deferReply();
 
-            const user = await API.fetchUser(gameName, tagLine);
-            if (!user) {
-                return interaction.editReply({
-                    content: "❌ **Joueur introuvable !** Vérifie le pseudo et le tag."
-                });
-            }
-
-            const allGamemodes = user.gamemodes();
-            const userInfo = user.info();
-            const rankedStats = user.ranked() || {};
-            const unrankedStats = allGamemodes["unrated"] || allGamemodes["unranked"] || allGamemodes["normal"] || {};
-
-            const avatarURL = userInfo.avatar || "https://example.com/default-avatar.png";
-            const bannerURL = userInfo.card || "https://media.valorant-api.com/playercards/99fbf62b-4dbe-4edb-b4dc-89b4a56df7aa.png";
+            const { userInfo, rankedStats, unrankedStats, avatarURL, bannerURL } = await fetchUserStats(gameName, tagLine);
             const rank = userInfo.rank || "Non classé";
             const peakRank = userInfo.peakRank || "Inconnu";
-
             const cleanRank = rank.toLowerCase().replace(/[^a-z]/g, "");
-            let embedColor = rankColors[cleanRank] || "Blue";
+            const embedColor = rankColors[cleanRank] || "Blue";
 
             const embedRanked = new EmbedBuilder()
                 .setTitle(`🏆 Stats Ranked - ${gameName}#${tagLine}`)
