@@ -33,7 +33,7 @@ bot.once('ready', () => {
     setInterval(() => {
         checkForNewGames(bot);
         console.log("🔍 Vérification des parties terminée !");
-    }, 600000);
+    }, 60000);
 
     
     setInterval(() => {

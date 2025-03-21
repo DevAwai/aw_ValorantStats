@@ -85,7 +85,7 @@ async function checkForNewGames(client) {
             console.error(`❌ Erreur lors de la vérification des stats de ${player.name}#${player.tag} :`, error);
         }
 
-        await sleep(10000);
+        await sleep(1000);
     }
 
     saveTrackedPlayers(trackedPlayers);
