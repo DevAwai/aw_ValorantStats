@@ -15,7 +15,7 @@
     "discord.js": "^14.18.0",
     "fs": "^0.0.1-security",
     "path": "^0.12.7",
-    "vandal.js": "^1.3.0"
+    "vandal.js": "github:iFraan/vandal.js#curl-to-fetch"
   },
   "keywords": []
 }
