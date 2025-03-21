@@ -51,8 +51,9 @@ async function checkForNewGames(client) {
         let retries = 3;
         while (retries > 0) {
             try {
-                const { rankedStats } = await fetchUserStats(player.name, player.tag);
+                const { userInfo, rankedStats } = await fetchUserStats(player.name, player.tag);
                 const { matchesPlayed, matchesWon, matchesLost } = rankedStats;
+                const rank = userInfo.rank || "Non classé";
 
                 if (matchesPlayed > player.lastMatchesPlayed) {
                     const channel = client.channels.cache.get("1322904141164445727");
@@ -67,7 +68,7 @@ async function checkForNewGames(client) {
                                 : `**${player.name}#${player.tag}** a terminé une nouvelle partie en mode Ranked.`)
                             .addFields(
                                 { name: "🔹 Parties jouées", value: `**${matchesPlayed}**`, inline: true },
-                                { name: "🔹 Rang actuel", value: `**${rankedStats.rank || "Non classé"}**`, inline: true },
+                                { name: "🔹 Rang actuel", value: `**${rank}**`, inline: true },
                                 { name: "🔹 Résultat du dernier match", value: `**${lastMatchResult}**`, inline: true },
                                 { name: "🏆 Victoires", value: `**${matchesWon}**`, inline: true },
                                 { name: "❌ Défaites", value: `**${matchesLost}**`, inline: true }
