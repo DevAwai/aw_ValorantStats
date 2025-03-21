@@ -48,41 +48,53 @@ async function fetchUserStats(gameName, tagLine) {
 async function checkForNewGames(client) {
     const trackedPlayers = loadTrackedPlayers();
     for (const player of trackedPlayers) {
-        try {
-            const { rankedStats } = await fetchUserStats(player.name, player.tag);
-            const { matchesPlayed, matchesWon, matchesLost } = rankedStats;
+        let retries = 3;
+        while (retries > 0) {
+            try {
+                const { rankedStats } = await fetchUserStats(player.name, player.tag);
+                const { matchesPlayed, matchesWon, matchesLost } = rankedStats;
 
-            if (matchesPlayed > player.lastMatchesPlayed) {
-                const channel = client.channels.cache.get("1322904141164445727");
-                if (channel) {
-                    const lastMatchResult = matchesWon > player.lastMatchesWon ? "Gagné" : "Perdu";
-                    const isDefeat = lastMatchResult === "Perdu";
+                if (matchesPlayed > player.lastMatchesPlayed) {
+                    const channel = client.channels.cache.get("1322904141164445727");
+                    if (channel) {
+                        const lastMatchResult = matchesWon > player.lastMatchesWon ? "Gagné" : "Perdu";
+                        const isDefeat = lastMatchResult === "Perdu";
 
-                    const embed = new EmbedBuilder()
-                        .setTitle(isDefeat ? "🎮 WOINP WOINP WOIIIINP !" : "🎮 Nouvelle partie détectée !")
-                        .setDescription(isDefeat
-                            ? `**${player.name}#${player.tag}** vient de perdre en ranked 😢`
-                            : `**${player.name}#${player.tag}** a terminé une nouvelle partie en mode Ranked.`)
-                        .addFields(
-                            { name: "🔹 Parties jouées", value: `**${matchesPlayed}**`, inline: true },
-                            { name: "🔹 Rang actuel", value: `**${rankedStats.rank || "Non classé"}**`, inline: true },
-                            { name: "🔹 Résultat du dernier match", value: `**${lastMatchResult}**`, inline: true },
-                            { name: "🏆 Victoires", value: `**${matchesWon}**`, inline: true },
-                            { name: "❌ Défaites", value: `**${matchesLost}**`, inline: true }
-                        )
-                        .setColor(isDefeat ? "Red" : "Green")
-                        .setFooter({ text: "Mise à jour automatique" })
-                        .setTimestamp();
+                        const embed = new EmbedBuilder()
+                            .setTitle(isDefeat ? "🎮 WOINP WOINP WOIIIINP !" : "🎮 Nouvelle partie détectée !")
+                            .setDescription(isDefeat
+                                ? `**${player.name}#${player.tag}** vient de perdre en ranked 😢`
+                                : `**${player.name}#${player.tag}** a terminé une nouvelle partie en mode Ranked.`)
+                            .addFields(
+                                { name: "🔹 Parties jouées", value: `**${matchesPlayed}**`, inline: true },
+                                { name: "🔹 Rang actuel", value: `**${rankedStats.rank || "Non classé"}**`, inline: true },
+                                { name: "🔹 Résultat du dernier match", value: `**${lastMatchResult}**`, inline: true },
+                                { name: "🏆 Victoires", value: `**${matchesWon}**`, inline: true },
+                                { name: "❌ Défaites", value: `**${matchesLost}**`, inline: true }
+                            )
+                            .setColor(isDefeat ? "Red" : "Green")
+                            .setFooter({ text: "Mise à jour automatique" })
+                            .setTimestamp();
 
-                    await channel.send({ embeds: [embed] });
+                        await channel.send({ embeds: [embed] });
 
-                    player.lastMatchesPlayed = matchesPlayed;
-                    player.lastMatchesWon = matchesWon;
-                    player.lastMatchesLost = matchesLost;
+                        player.lastMatchesPlayed = matchesPlayed;
+                        player.lastMatchesWon = matchesWon;
+                        player.lastMatchesLost = matchesLost;
+                    }
+                }
+                break;
+            } catch (error) {
+                console.error(`❌ Erreur lors de la vérification des stats de ${player.name}#${player.tag} :`, error);
+                retries -= 1;
+                if (retries === 0) {
+                    console.error(`❌ Échec de la vérification des stats de ${player.name}#${player.tag} après plusieurs tentatives.`);
+                } else {
+                    console.log(`🔄 Nouvelle tentative pour ${player.name}#${player.tag} (${3 - retries}/3)`);
                 }
             }
-        } catch (error) {
-            console.error(`❌ Erreur lors de la vérification des stats de ${player.name}#${player.tag} :`, error);
+
+            await sleep(1000);
         }
 
         await sleep(1000);
