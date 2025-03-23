@@ -59,22 +59,21 @@ async function checkForNewGames(client) {
                 if (matchesPlayed > player.lastMatchesPlayed) {
                     const channel = client.channels.cache.get("1322904141164445727");
                     if (channel) {
-                        const lastMatchResult = matchesWon > player.lastMatchesWon ? "Gagné" : "Perdu";
-                        const isDefeat = lastMatchResult === "Perdu";
+                        const winRate = ((matchesWon / matchesPlayed) * 100).toFixed(2);
 
                         const embed = new EmbedBuilder()
-                            .setTitle(isDefeat ? "🎮 WOINP WOINP WOIIIINP !" : "🎮 Nouvelle partie détectée !")
-                            .setDescription(isDefeat
-                                ? `**${player.name}#${player.tag}** vient de perdre en ranked 😢`
-                                : `**${player.name}#${player.tag}** a terminé une nouvelle partie en mode Ranked.`)
+                            .setTitle(matchesWon > player.lastMatchesWon ? "✅ MATCH GAGNÉ" : "❌ MATCH PERDU")
+                            .setDescription(matchesWon > player.lastMatchesWon
+                                ? `**${player.name}#${player.tag}** vient de gagner en ranked 🥳`
+                                : `**${player.name}#${player.tag}** vient de perdre en ranked 😢`)
                             .addFields(
                                 { name: "🔹 Parties jouées", value: `**${matchesPlayed}**`, inline: true },
                                 { name: "🔹 Rang actuel", value: `**${rank}**`, inline: true },
-                                { name: "🔹 Résultat du dernier match", value: `**${lastMatchResult}**`, inline: true },
+                                { name: "🔹 Win Rate", value: `**${winRate}%**`, inline: true },
                                 { name: "🏆 Victoires", value: `**${matchesWon}**`, inline: true },
-                                { name: "❌ Défaites", value: `**${matchesLost}**`, inline: true }
+                                { name: "☠️ Défaites", value: `**${matchesLost}**`, inline: true }
                             )
-                            .setColor(isDefeat ? "Red" : "Green")
+                            .setColor(matchesWon > player.lastMatchesWon ? "Green" : "Red")
                             .setFooter({ text: "Mise à jour automatique" })
                             .setTimestamp();
 
