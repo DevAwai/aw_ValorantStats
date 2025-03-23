@@ -2,6 +2,7 @@ const { SlashCommandBuilder, EmbedBuilder, ActionRowBuilder, ButtonBuilder, Butt
 const { API } = require("vandal.js");
 const fs = require("fs");
 const path = require("path");
+const cron = require("node-cron");
 
 const cooldowns = new Map();
 const rankColors = {
@@ -231,5 +232,9 @@ module.exports = {
         }
     }
 };
+
+cron.schedule('*/5 * * * *', () => {
+    checkForNewGames(client);
+});
 
 module.exports.checkForNewGames = checkForNewGames;
