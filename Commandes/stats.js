@@ -60,20 +60,25 @@ async function checkForNewGames(client) {
                     const channel = client.channels.cache.get("1322904141164445727");
                     if (channel) {
                         const winRate = ((matchesWon / matchesPlayed) * 100).toFixed(2);
+                        const isWin = matchesWon > player.lastMatchesWon;
+                        const imageUrl = isWin 
+                            ? "https://i.postimg.cc/HkLmrjp5/win.png"
+                            : "https://i.postimg.cc/9QNhZVMk/loose.png";
 
                         const embed = new EmbedBuilder()
-                            .setTitle(matchesWon > player.lastMatchesWon ? "✅ MATCH GAGNÉ" : "❌ MATCH PERDU")
-                            .setDescription(matchesWon > player.lastMatchesWon
+                            .setTitle(isWin ? "✅ Valorant Stats - WIN" : "❌ Valorant Stats - LOOSE")
+                            .setDescription(isWin
                                 ? `**${player.name}#${player.tag}** vient de gagner en ranked 🥳`
                                 : `**${player.name}#${player.tag}** vient de perdre en ranked 😢`)
+                            .setImage(imageUrl)
                             .addFields(
-                                { name: "🔹 Parties jouées", value: `**${matchesPlayed}**`, inline: true },
-                                { name: "🔹 Rang actuel", value: `**${rank}**`, inline: true },
-                                { name: "🔹 Win Rate", value: `**${winRate}%**`, inline: true },
-                                { name: "🏆 Victoires", value: `**${matchesWon}**`, inline: true },
-                                { name: "☠️ Défaites", value: `**${matchesLost}**`, inline: true }
+                                { name: "🔹 Parties jouées", value: `${matchesPlayed}`, inline: true },
+                                { name: "🔹 Rang actuel", value: `${rank}`, inline: true },
+                                { name: "🔹 Win Rate", value: `${winRate}%`, inline: true },
+                                { name: "🏆 Victoires", value: `${matchesWon}`, inline: true },
+                                { name: "☠️ Défaites", value: `${matchesLost}`, inline: true }
                             )
-                            .setColor(matchesWon > player.lastMatchesWon ? "Green" : "Red")
+                            .setColor(isWin ? "Green" : "Red")
                             .setFooter({ text: "Mise à jour automatique" })
                             .setTimestamp();
 
