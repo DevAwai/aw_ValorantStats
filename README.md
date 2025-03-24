@@ -15,8 +15,8 @@
 | Commande | Description |
 |----------|------------|
 | `/stats <pseudo>` | Récupère les stats du joueur en direct |
-| `/game <jeu>` | Sélectionne le jeu à suivre |
-| `/live start` | Active les mises à jour automatiques |
+| `/addsuivis ` | Sélectionne la personne à suivre |
+| `/removesuivis <pseudo>` | Désélectionne la personne à suivre  |
 | `/live stop` | Désactive les mises à jour automatiques |
 
 ## 📷 Exemple d’Embed  
