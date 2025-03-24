@@ -3,6 +3,7 @@ const { API } = require("vandal.js");
 const fs = require("fs");
 const path = require("path");
 const cron = require("node-cron");
+const { handleError } = require("../utils/errorHandler");
 
 const cooldowns = new Map();
 const rankColors = {
@@ -224,15 +225,7 @@ module.exports = {
             });
 
         } catch (error) {
-            console.error("❌ Erreur API :", error);
-
-            const errorEmbed = new EmbedBuilder()
-                .setTitle("⚠️ Erreur API")
-                .setColor("Red")
-                .setDescription(`\`\`\`js\n${error.stack?.slice(0, 1000) || error.message}\n\`\`\``)
-                .setFooter({ text: "Réessaie plus tard ou contacte le support." });
-
-            await interaction.editReply({ embeds: [errorEmbed] });
+            await handleError(interaction, error);
         }
     }
 };
