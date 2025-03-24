@@ -2,10 +2,10 @@ const Discord = require("discord.js");
 const { REST } = require("@discordjs/rest");
 const { Routes } = require("discord.js");
 
-module.exports = async bot => {
+module.exports = async (bot) => {
     let commands = [];
 
-    bot.commands.forEach(async command => {
+    bot.commands.forEach(async (command) => {
         let slashcommand = new Discord.SlashCommandBuilder()
             .setName(command.name)
             .setDescription(command.description)
@@ -14,7 +14,13 @@ module.exports = async bot => {
 
         if (command.options?.length >= 1) {
             for (let i = 0; i < command.options.length; i++) {
-                slashcommand[`add${command.options[i].type.slice(0, 1).toUpperCase() + command.options[i].type.slice(1, command.options[i].type.length)}Option`](option => option.setName(command.options[i].name).setDescription(command.options[i].description).setRequired(command.options[i].required));
+                slashcommand[`add${command.options[i].type.slice(0, 1).toUpperCase() + command.options[i].type.slice(1, command.options[i].type.length)}Option`](
+                    (option) =>
+                        option
+                            .setName(command.options[i].name)
+                            .setDescription(command.options[i].description)
+                            .setRequired(command.options[i].required)
+                );
             }
         }
         commands.push(slashcommand);
