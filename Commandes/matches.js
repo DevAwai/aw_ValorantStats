@@ -1,6 +1,9 @@
 const { SlashCommandBuilder, EmbedBuilder } = require("discord.js");
-const { ExtendedAPI } = require("../utils/vandalExtended");
+const fetch = (...args) => import("node-fetch").then(({ default: fetch }) => fetch(...args));
 const { handleError } = require("../utils/errorHandler");
+require("dotenv").config();
+
+const apiKey = process.env.HENRIK_API_KEY;
 
 module.exports = {
     name: "matches",
@@ -17,22 +20,15 @@ module.exports = {
         },
         {
             type: "string",
-            name: "type",
-            description: "Type de match (competitive, unrated, etc.)",
-            required: false,
-        },
-        {
-            type: "string",
-            name: "season",
-            description: "ID de la saison (optionnel)",
-            required: false,
+            name: "region",
+            description: "Région du joueur (eu, na, ap, etc.)",
+            required: true,
         },
     ],
 
     async execute(interaction) {
         const pseudo = interaction.options.getString("pseudo");
-        const type = interaction.options.getString("type") || "competitive";
-        const season = interaction.options.getString("season") || "";
+        const region = interaction.options.getString("region");
 
         if (!pseudo.match(/^.+#[0-9A-Za-z]{3,5}$/)) {
             return interaction.reply({
@@ -46,10 +42,21 @@ module.exports = {
         try {
             await interaction.deferReply();
 
-            const api = new ExtendedAPI(gameName, tagLine);
-            const matches = await api.matches({ type, season });
+            const url = `https://api.henrikdev.xyz/valorant/v3/matches/${region}/${gameName}/${tagLine}`;
 
-            if (matches.length === 0) {
+            const response = await fetch(url, {
+                headers: {
+                    "Authorization": `Bearer ${apiKey}`,
+                },
+            });
+
+            if (!response.ok) {
+                throw new Error(`Erreur API : ${response.status} ${response.statusText}`);
+            }
+
+            const data = await response.json();
+
+            if (!data.data || data.data.length === 0) {
                 return interaction.editReply({
                     content: "❌ Aucun match trouvé pour ce joueur.",
                     ephemeral: true,
@@ -59,11 +66,11 @@ module.exports = {
             const embed = new EmbedBuilder()
                 .setTitle(`🎮 Derniers matchs de ${gameName}#${tagLine}`)
                 .setColor("#3498db")
-                .setDescription(`Voici les derniers matchs en mode **${type}** :`)
+                .setDescription("Voici les derniers matchs :")
                 .addFields(
-                    matches.slice(0, 10).map((match) => ({
-                        name: `🗺️ ${match.map.split("/").pop()} - ${new Date(match.timestamp).toLocaleString()}`,
-                        value: `🔹 **Mode** : ${match.mode}\n🔹 **Durée** : ${Math.floor(match.duration / 60)} minutes\n🔹 **K/D** : ${match.stats.kDRatio?.value?.toFixed(2) || "N/A"}`,
+                    data.data.slice(0, 5).map((match) => ({
+                        name: `🗺️ ${match.metadata.map} - ${match.metadata.mode}`,
+                        value: `🔹 **Date** : ${match.metadata.game_start_patched}\n🔹 **Durée** : ${Math.floor(match.metadata.game_length / 60000)} minutes\n🔹 **Rounds joués** : ${match.metadata.rounds_played}`,
                         inline: false,
                     }))
                 )
