@@ -27,6 +27,7 @@ module.exports = {
     ],
 
     async execute(interaction) {
+        console.log("Clé API :", apiKey);
         const pseudo = interaction.options.getString("pseudo");
         const region = interaction.options.getString("region");
 
@@ -42,13 +43,10 @@ module.exports = {
         try {
             await interaction.deferReply();
 
-            const url = `https://api.henrikdev.xyz/valorant/v3/matches/${region}/${gameName}/${tagLine}`;
+            const url = `https://api.henrikdev.xyz/valorant/v3/matches/${region}/${gameName}/${tagLine}?force=true&api_key=${apiKey}`;
+            console.log("URL :", url);
 
-            const response = await fetch(url, {
-                headers: {
-                    "Authorization": `Bearer ${apiKey}`,
-                },
-            });
+            const response = await fetch(url);
 
             if (!response.ok) {
                 throw new Error(`Erreur API : ${response.status} ${response.statusText}`);
@@ -59,7 +57,6 @@ module.exports = {
             if (!data.data || data.data.length === 0) {
                 return interaction.editReply({
                     content: "❌ Aucun match trouvé pour ce joueur.",
-                    ephemeral: true,
                 });
             }
 
@@ -79,6 +76,7 @@ module.exports = {
 
             await interaction.editReply({ embeds: [embed] });
         } catch (error) {
+            console.error("Erreur capturée :", error);
             await handleError(interaction, error);
         }
     },
