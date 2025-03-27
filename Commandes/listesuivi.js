@@ -27,7 +27,7 @@ module.exports = {
                         .map((player, index) => `**${index + 1}.** ${player.name}#${player.tag}`)
                         .join("\n")
                 )
-                .setFooter({ text: `Total : ${trackedPlayers.length} joueur(s)` })
+                .setFooter({ text: `Demandé par ${interaction.user.username}`, iconURL: interaction.user.displayAvatarURL() })
                 .setTimestamp();
 
             await interaction.reply({ embeds: [embed] });
