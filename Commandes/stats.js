@@ -53,31 +53,53 @@ async function checkForNewGames(client) {
         let retries = 3;
         while (retries > 0) {
             try {
-                const { userInfo, rankedStats } = await fetchUserStats(player.name, player.tag);
-                const { matchesPlayed, matchesWon, matchesLost } = rankedStats;
-                const rank = userInfo.rank || "Non classé";
+                const url = `https://api.henrikdev.xyz/valorant/v3/matches/eu/${player.name}/${player.tag}?force=true&api_key=${process.env.HENRIK_API_KEY}`;
+                console.log("URL :", url);
 
-                if (matchesPlayed > player.lastMatchesPlayed) {
+                const response = await fetch(url);
+                if (!response.ok) {
+                    throw new Error(`Erreur API : ${response.status} ${response.statusText}`);
+                }
+
+                const data = await response.json();
+
+                if (!data.data || data.data.length === 0) {
+                    console.log(`Aucun match trouvé pour ${player.name}#${player.tag}`);
+                    break;
+                }
+
+                const lastCompetitiveMatch = data.data.find(match => match.metadata.mode === "Competitive");
+                if (!lastCompetitiveMatch) {
+                    console.log(`Aucun match compétitif trouvé pour ${player.name}#${player.tag}`);
+                    break;
+                }
+
+                const matchId = lastCompetitiveMatch.metadata.matchid;
+                const matchDetailsUrl = `https://tracker.gg/valorant/match/${matchId}`;
+                const map = lastCompetitiveMatch.metadata.map;
+                const roundsPlayed = lastCompetitiveMatch.metadata.rounds_played;
+
+                if (matchId !== player.lastMatchId) {
                     const channel = client.channels.cache.get("1322904141164445727");
                     if (channel) {
-                        const winRate = ((matchesWon / matchesPlayed) * 100).toFixed(2);
-                        const isWin = matchesWon > player.lastMatchesWon;
-                        const imageUrl = isWin 
+                        const isWin = lastCompetitiveMatch.teams.red.has_won && lastCompetitiveMatch.players.all_players.some(p => p.name === player.name && p.team === "Red")
+                            || lastCompetitiveMatch.teams.blue.has_won && lastCompetitiveMatch.players.all_players.some(p => p.name === player.name && p.team === "Blue");
+
+                        const imageUrl = isWin
                             ? "https://i.postimg.cc/HkLmrjp5/win.png"
                             : "https://i.postimg.cc/9QNhZVMk/loose.png";
 
                         const embed = new EmbedBuilder()
                             .setTitle(isWin ? "✅ Valorant Stats - WIN" : "❌ Valorant Stats - LOOSE")
                             .setDescription(isWin
-                                ? `**${player.name}#${player.tag}** vient de gagner en ranked 🥳`
-                                : `**${player.name}#${player.tag}** vient de perdre en ranked 😢`)
+                                ? `**${player.name}#${player.tag}** vient de gagner un match compétitif 🥳`
+                                : `**${player.name}#${player.tag}** vient de perdre un match compétitif 😢`)
                             .setImage(imageUrl)
                             .addFields(
-                                { name: "🔹 Parties jouées", value: `${matchesPlayed}`, inline: true },
                                 { name: "🔹 Rang actuel", value: `${rank}`, inline: true },
-                                { name: "🔹 Win Rate", value: `${winRate}%`, inline: true },
-                                { name: "🏆 Victoires", value: `${matchesWon}`, inline: true },
-                                { name: "☠️ Défaites", value: `${matchesLost}`, inline: true }
+                                { name: "🗺️ Carte", value: `${map}`, inline: true },
+                                { name: "🔹 Rounds joués", value: `${roundsPlayed}`, inline: true },
+                                { name: "🔗 Détails du match", value: `[Voir les détails](${matchDetailsUrl})`, inline: false }
                             )
                             .setColor(isWin ? "Green" : "Red")
                             .setFooter({ text: "Mise à jour automatique" })
@@ -85,9 +107,7 @@ async function checkForNewGames(client) {
 
                         await channel.send({ embeds: [embed] });
 
-                        player.lastMatchesPlayed = matchesPlayed;
-                        player.lastMatchesWon = matchesWon;
-                        player.lastMatchesLost = matchesLost;
+                        player.lastMatchId = matchId;
                     }
                 }
                 break;
