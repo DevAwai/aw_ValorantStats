@@ -33,7 +33,7 @@ module.exports = {
 
         if (!pseudo.match(/^.+#[0-9A-Za-z]{3,5}$/)) {
             return interaction.reply({
-                content: "❌ **Format invalide !** Utilise : `Pseudo#Tag` (ex: `Player#1234`)",
+                content: "❌ **Format invalide !** Utilise : `Pseudo#Tag` (ex: `Player#1234`)`",
                 ephemeral: true,
             });
         }
@@ -67,7 +67,7 @@ module.exports = {
                 .addFields(
                     data.data.slice(0, 5).map((match) => ({
                         name: `🗺️ ${match.metadata.map} - ${match.metadata.mode}`,
-                        value: `🔹 **Date** : ${match.metadata.game_start_patched}\n🔹 **Durée** : ${Math.floor(match.metadata.game_length / 60000)} minutes\n🔹 **Rounds joués** : ${match.metadata.rounds_played}`,
+                        value: `🔹 **Date** : ${match.metadata.game_start_patched}\n🔹 **ID du match** : ${match.metadata.matchid}\n🔹 **Rounds joués** : ${match.metadata.rounds_played}`,
                         inline: false,
                     }))
                 )
