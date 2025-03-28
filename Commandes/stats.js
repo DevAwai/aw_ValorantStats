@@ -118,17 +118,11 @@ module.exports = {
             description: "Le pseudo sous format Pseudo#Tag",
             required: true,
         },
-        {
-            type: "string",
-            name: "region",
-            description: "Région du joueur (eu, na, ap, etc.)",
-            required: true,
-        },
     ],
 
     async execute(interaction) {
         const pseudo = interaction.options.getString("pseudo");
-        const region = interaction.options.getString("region");
+        const region = "eu";
 
         if (!pseudo.match(/^.+#[0-9A-Za-z]{3,5}$/)) {
             return interaction.reply({
