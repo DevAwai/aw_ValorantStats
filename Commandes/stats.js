@@ -142,26 +142,43 @@ module.exports = {
         try {
             await interaction.deferReply();
 
-            const url = `https://api.henrikdev.xyz/valorant/v2/mmr/${region}/${gameName}/${tagLine}?api_key=${apiKey}`;
-            console.log("URL :", url);
-
-            const response = await fetch(url);
-            if (!response.ok) {
-                throw new Error(`Erreur API : ${response.status} ${response.statusText}`);
+            const statsUrl = `https://api.henrikdev.xyz/valorant/v2/mmr/${region}/${gameName}/${tagLine}?api_key=${apiKey}`;
+            console.log("URL Stats :", statsUrl);
+            
+            const statsResponse = await fetch(statsUrl);
+            if (!statsResponse.ok) {
+                throw new Error(`Erreur API Stats : ${statsResponse.status} ${statsResponse.statusText}`);
             }
-
-            const data = await response.json();
-
-            if (!data.data) {
+            
+            const statsData = await statsResponse.json();
+            
+            if (!statsData.data) {
                 return interaction.editReply({
                     content: "❌ Impossible de récupérer les statistiques pour ce joueur.",
                 });
             }
-
-            const currentData = data.data.current_data;
-            const highestRank = data.data.highest_rank;
+            
+            const accountUrl = `https://api.henrikdev.xyz/valorant/v1/account/${gameName}/${tagLine}?api_key=${apiKey}`;
+            console.log("URL Account :", accountUrl);
+            
+            const accountResponse = await fetch(accountUrl);
+            if (!accountResponse.ok) {
+                throw new Error(`Erreur API Account : ${accountResponse.status} ${accountResponse.statusText}`);
+            }
+            
+            const accountData = await accountResponse.json();
+            
+            if (!accountData.data) {
+                return interaction.editReply({
+                    content: "❌ Impossible de récupérer les informations du joueur.",
+                });
+            }
+            
+            const playerCard = accountData.data.card.large; 
+            const currentData = statsData.data.current_data;
+            const highestRank = statsData.data.highest_rank;
             const elo = currentData.elo || "Inconnu";
-            const currentRank = currentData.currenttierpatched || "Non classé";
+            const currentRank = currentData.currenttier_patched || "Non classé";
             const rankingInTier = currentData.ranking_in_tier || "Inconnu";
             const mmrChange = currentData.mmr_change_to_last_game || 0;
 
@@ -169,6 +186,7 @@ module.exports = {
                 .setTitle(`🏆 Stats Ranked - ${gameName}#${tagLine}`)
                 .setColor("#3498db")
                 .setDescription("📊 Statistiques du mode Ranked")
+                .setImage(playerCard) 
                 .addFields(
                     { name: "🔹 Rang Actuel", value: `${currentRank}`, inline: true },
                     { name: "🔝 Plus Haut Rang", value: `${highestRank.patched_tier || "Inconnu"}`, inline: true },
