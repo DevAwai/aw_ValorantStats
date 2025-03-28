@@ -1,16 +1,10 @@
 const { SlashCommandBuilder, EmbedBuilder } = require("discord.js");
 const fetch = (...args) => import("node-fetch").then(({ default: fetch }) => fetch(...args));
 require("dotenv").config();
-const path = require("path");
+const path = require("path"); 
 const fs = require("fs"); 
+const cron = require("node-cron");
 const apiKey = process.env.HENRIK_API_KEY;
-
-const cooldowns = new Map();
-const rankColors = {
-    "iron": "#9F9F9F", "bronze": "#CD7F32", "silver": "#C0C0C0",
-    "gold": "#FFD700", "platinum": "#00FFFF", "diamond": "#00BFFF",
-    "ascendant": "#4B0082", "immortal": "#DC143C", "radiant": "#FFFF00"
-};
 
 const trackedPlayersPath = path.join(__dirname, "..", "suivi_joueurs.json");
 
@@ -29,31 +23,13 @@ function saveTrackedPlayers(players) {
     fs.writeFileSync(trackedPlayersPath, JSON.stringify(players, null, 2));
 }
 
-async function fetchUserStats(gameName, tagLine) {
-    const user = await API.fetchUser(gameName, tagLine);
-    if (!user) throw new Error("Joueur introuvable");
-
-    const allGamemodes = user.gamemodes();
-    const userInfo = user.info();
-    const rankedStats = user.ranked() || {};
-    const unrankedStats = allGamemodes["unrated"] || allGamemodes["unranked"] || allGamemodes["normal"] || {};
-
-    return {
-        userInfo,
-        rankedStats,
-        unrankedStats,
-        avatarURL: userInfo.avatar || "https://example.com/default-avatar.png",
-        bannerURL: userInfo.card || "https://media.valorant-api.com/playercards/99fbf62b-4dbe-4edb-b4dc-89b4a56df7aa.png"
-    };
-}
-
 async function checkForNewGames(client) {
     const trackedPlayers = loadTrackedPlayers();
     for (const player of trackedPlayers) {
         let retries = 3;
         while (retries > 0) {
             try {
-                const url = `https://api.henrikdev.xyz/valorant/v3/matches/eu/${player.name}/${player.tag}?force=true&api_key=${process.env.HENRIK_API_KEY}`;
+                const url = `https://api.henrikdev.xyz/valorant/v3/matches/eu/${player.name}/${player.tag}?force=true&api_key=${apiKey}`;
                 console.log("URL :", url);
 
                 const response = await fetch(url);
@@ -96,7 +72,6 @@ async function checkForNewGames(client) {
                                 : `**${player.name}#${player.tag}** vient de perdre un match compétitif 😢`)
                             .setImage(imageUrl)
                             .addFields(
-                                //{ name: "🔹 Rang actuel", value: `${rank}`, inline: true },
                                 { name: "🗺️ Carte", value: `${map}`, inline: true },
                                 { name: "🔹 Rounds joués", value: `${roundsPlayed}`, inline: true },
                                 { name: "🔗 Détails du match", value: `[Voir les détails](${matchDetailsUrl})`, inline: false }
@@ -186,22 +161,22 @@ module.exports = {
             const currentData = data.data.current_data;
             const highestRank = data.data.highest_rank;
             const elo = currentData.elo || "Inconnu";
-            const currentRank = currentData.currenttier_patched || "Non classé";
+            const currentRank = currentData.currenttierpatched || "Non classé";
             const rankingInTier = currentData.ranking_in_tier || "Inconnu";
             const mmrChange = currentData.mmr_change_to_last_game || 0;
 
             const embed = new EmbedBuilder()
-                .setTitle(`📊 Statistiques de ${gameName}#${tagLine}`)
+                .setTitle(`🏆 Stats Ranked - ${gameName}#${tagLine}`)
                 .setColor("#3498db")
-                .setDescription("Voici les statistiques actuelles du joueur :")
+                .setDescription("📊 Statistiques du mode Ranked")
                 .addFields(
-                    { name: "🔹 Rang Actuel", value: `**${currentRank}**`, inline: true },
-                    { name: "🔝 Plus Haut Rang", value: `**${highestRank.patched_tier || "Inconnu"}**`, inline: true },
-                    { name: "🔢 Elo", value: `**${elo}**`, inline: true },
-                    { name: "📈 Rang dans le Tier", value: `**${rankingInTier}**`, inline: true },
-                    { name: "🔄 Changement MMR", value: `**${mmrChange > 0 ? `+${mmrChange}` : mmrChange}**`, inline: true }
+                    { name: "🔹 Rang Actuel", value: `${currentRank}`, inline: true },
+                    { name: "🔝 Plus Haut Rang", value: `${highestRank.patched_tier || "Inconnu"}`, inline: true },
+                    { name: "🔢 Elo", value: `${elo}`, inline: true },
+                    { name: "📈 Rang dans le Tier", value: `${rankingInTier}`, inline: true },
+                    { name: "🔄 Changement MMR", value: `${mmrChange > 0 ? `+${mmrChange}` : mmrChange}`, inline: true }
                 )
-                .setFooter({ text: "Données fournies par l'API HenrikDev" })
+                .setFooter({ text: "🔹Mode Ranked" })
                 .setTimestamp();
 
             await interaction.editReply({ embeds: [embed] });
