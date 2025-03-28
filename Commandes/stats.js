@@ -172,7 +172,7 @@ module.exports = {
             const currentData = statsData.data.current_data;
             const highestRank = statsData.data.highest_rank;
             const elo = currentData.elo || "Inconnu";
-            const currentRank = currentData.currenttier_patched || "Non classé";
+            const currentRank = currentData.currenttierpatched || "Non classé";
             const rankingInTier = currentData.ranking_in_tier || "Inconnu";
             const mmrChange = currentData.mmr_change_to_last_game || 0;
 
