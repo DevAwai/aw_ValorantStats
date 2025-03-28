@@ -1,9 +1,9 @@
-const { SlashCommandBuilder, EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle } = require("discord.js");
-const { API } = require("vandal.js");
-const fs = require("fs");
+const { SlashCommandBuilder, EmbedBuilder } = require("discord.js");
+const fetch = (...args) => import("node-fetch").then(({ default: fetch }) => fetch(...args));
+require("dotenv").config();
 const path = require("path");
-const cron = require("node-cron");
-const { handleError } = require("../utils/errorHandler");
+const fs = require("fs"); 
+const apiKey = process.env.HENRIK_API_KEY;
 
 const cooldowns = new Map();
 const rankColors = {
@@ -96,7 +96,7 @@ async function checkForNewGames(client) {
                                 : `**${player.name}#${player.tag}** vient de perdre un match compétitif 😢`)
                             .setImage(imageUrl)
                             .addFields(
-                                { name: "🔹 Rang actuel", value: `${rank}`, inline: true },
+                                //{ name: "🔹 Rang actuel", value: `${rank}`, inline: true },
                                 { name: "🗺️ Carte", value: `${map}`, inline: true },
                                 { name: "🔹 Rounds joués", value: `${roundsPlayed}`, inline: true },
                                 { name: "🔗 Détails du match", value: `[Voir les détails](${matchDetailsUrl})`, inline: false }
@@ -141,29 +141,24 @@ module.exports = {
             type: "string",
             name: "pseudo",
             description: "Le pseudo sous format Pseudo#Tag",
-            required: true
-        }
+            required: true,
+        },
+        {
+            type: "string",
+            name: "region",
+            description: "Région du joueur (eu, na, ap, etc.)",
+            required: true,
+        },
     ],
 
     async execute(interaction) {
-        const userId = interaction.user.id;
-        const cooldownTime = this.cooldown * 1000;
-
-        if (cooldowns.has(userId) && cooldowns.get(userId) > Date.now()) {
-            return interaction.reply({
-                content: `⏳ **Attends un peu !** (${(cooldowns.get(userId) - Date.now()) / 1000}s restantes)`,
-                flags: 64 
-            });
-        }
-        cooldowns.set(userId, Date.now() + cooldownTime);
-        setTimeout(() => cooldowns.delete(userId), cooldownTime);
-
         const pseudo = interaction.options.getString("pseudo");
+        const region = interaction.options.getString("region");
 
         if (!pseudo.match(/^.+#[0-9A-Za-z]{3,5}$/)) {
             return interaction.reply({
                 content: "❌ **Format invalide !** Utilise : `Pseudo#Tag` (ex: `Player#1234`)`",
-                flags: 64 
+                ephemeral: true,
             });
         }
 
@@ -172,82 +167,51 @@ module.exports = {
         try {
             await interaction.deferReply();
 
-            const { userInfo, rankedStats, unrankedStats, avatarURL, bannerURL } = await fetchUserStats(gameName, tagLine);
-            const rank = userInfo.rank || "Non classé";
-            const peakRank = userInfo.peakRank || "Inconnu";
-            const cleanRank = rank.toLowerCase().replace(/[^a-z]/g, "");
-            const embedColor = rankColors[cleanRank] || "Blue";
+            const url = `https://api.henrikdev.xyz/valorant/v2/mmr/${region}/${gameName}/${tagLine}?api_key=${apiKey}`;
+            console.log("URL :", url);
 
-            const embedRanked = new EmbedBuilder()
-                .setTitle(`🏆 Stats Ranked - ${gameName}#${tagLine}`)
-                .setColor(embedColor)
-                .setThumbnail(avatarURL)
-                .setImage(bannerURL)
-                .setDescription("📊 **Statistiques du mode Ranked**")
+            const response = await fetch(url);
+            if (!response.ok) {
+                throw new Error(`Erreur API : ${response.status} ${response.statusText}`);
+            }
+
+            const data = await response.json();
+
+            if (!data.data) {
+                return interaction.editReply({
+                    content: "❌ Impossible de récupérer les statistiques pour ce joueur.",
+                });
+            }
+
+            const currentData = data.data.current_data;
+            const highestRank = data.data.highest_rank;
+            const elo = currentData.elo || "Inconnu";
+            const currentRank = currentData.currenttier_patched || "Non classé";
+            const rankingInTier = currentData.ranking_in_tier || "Inconnu";
+            const mmrChange = currentData.mmr_change_to_last_game || 0;
+
+            const embed = new EmbedBuilder()
+                .setTitle(`📊 Statistiques de ${gameName}#${tagLine}`)
+                .setColor("#3498db")
+                .setDescription("Voici les statistiques actuelles du joueur :")
                 .addFields(
-                    { name: "🔹 Rang Actuel", value: `**${rank}**`, inline: true },
-                    { name: "🔝 Peak Rank", value: `**${peakRank}**`, inline: true },
-                    { name: "🔫 K/D Ratio", value: `**${rankedStats.kDRatio?.toFixed(2) || "0.00"}**`, inline: true },
-                    { name: "🎯 Headshot %", value: `**${rankedStats.headshotsPercentage?.toFixed(2) || "0"}%**`, inline: true },
-                    { name: "🎮 Parties Jouées", value: `**${rankedStats.matchesPlayed || 0}**`, inline: true },
-                    { name: "💀 Kills", value: `**${rankedStats.kills || 0}**`, inline: true }
+                    { name: "🔹 Rang Actuel", value: `**${currentRank}**`, inline: true },
+                    { name: "🔝 Plus Haut Rang", value: `**${highestRank.patched_tier || "Inconnu"}**`, inline: true },
+                    { name: "🔢 Elo", value: `**${elo}**`, inline: true },
+                    { name: "📈 Rang dans le Tier", value: `**${rankingInTier}**`, inline: true },
+                    { name: "🔄 Changement MMR", value: `**${mmrChange > 0 ? `+${mmrChange}` : mmrChange}**`, inline: true }
                 )
-                .setFooter({ text: "🔹 Mode Ranked", iconURL: avatarURL })
+                .setFooter({ text: "Données fournies par l'API HenrikDev" })
                 .setTimestamp();
 
-            const embedUnranked = new EmbedBuilder()
-                .setTitle(`🎮 Stats Unranked - ${gameName}#${tagLine}`)
-                .setColor("Grey")
-                .setThumbnail(avatarURL)
-                .setImage(bannerURL)
-                .setDescription("📊 **Statistiques du mode Unranked**")
-                .addFields(
-                    { name: "🔫 K/D Ratio", value: `**${unrankedStats.kDRatio?.toFixed(2) || "0.00"}**`, inline: true },
-                    { name: "🎯 Headshot %", value: `**${unrankedStats.headshotsPercentage?.toFixed(2) || "0"}%**`, inline: true },
-                    { name: "🎮 Parties Jouées", value: `**${unrankedStats.matchesPlayed || 0}**`, inline: true },
-                    { name: "💀 Kills", value: `**${unrankedStats.kills || 0}**`, inline: true }
-                )
-                .setFooter({ text: "🎮 Mode Unranked", iconURL: avatarURL })
-                .setTimestamp();
-
-            const buttons = new ActionRowBuilder().addComponents(
-                new ButtonBuilder()
-                    .setCustomId("ranked_stats")
-                    .setLabel("🏆 Mode Ranked")
-                    .setStyle(ButtonStyle.Success),
-                new ButtonBuilder()
-                    .setCustomId("unranked_stats")
-                    .setLabel("🎮 Mode Unranked")
-                    .setStyle(ButtonStyle.Primary)
-            );
-
-            await interaction.editReply({
-                content: `🎯 **Sélectionne le mode de jeu pour voir les stats de** \`${gameName}#${tagLine}\` :`,
-                components: [buttons]
-            });
-
-            const filter = i => i.user.id === interaction.user.id;
-            const collector = interaction.channel.createMessageComponentCollector({ filter, time: 15000 });
-
-            collector.on("collect", async i => {
-                if (i.customId === "ranked_stats") {
-                    await i.update({ embeds: [embedRanked], components: [] });
-                } else if (i.customId === "unranked_stats") {
-                    await i.update({ embeds: [embedUnranked], components: [] });
-                }
-                collector.stop();
-            });
-
-            collector.on("end", collected => {
-                if (collected.size === 0) {
-                    interaction.editReply({ content: "⏳ **Temps écoulé !**", components: [] });
-                }
-            });
-
+            await interaction.editReply({ embeds: [embed] });
         } catch (error) {
-            await handleError(interaction, error);
+            console.error("Erreur capturée :", error);
+            await interaction.editReply({
+                content: "❌ Une erreur est survenue lors de la récupération des statistiques.",
+            });
         }
-    }
+    },
 };
 
 cron.schedule('*/5 * * * *', () => {
