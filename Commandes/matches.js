@@ -18,18 +18,12 @@ module.exports = {
             description: "Le pseudo sous format Pseudo#Tag",
             required: true,
         },
-        {
-            type: "string",
-            name: "region",
-            description: "Région du joueur (eu, na, ap, etc.)",
-            required: true,
-        },
     ],
 
     async execute(interaction) {
-        console.log("Clé API :", apiKey);
+        //console.log("Clé API :", apiKey);
         const pseudo = interaction.options.getString("pseudo");
-        const region = interaction.options.getString("region");
+        const region = "eu";
 
         if (!pseudo.match(/^.+#[0-9A-Za-z]{3,5}$/)) {
             return interaction.reply({
@@ -44,7 +38,7 @@ module.exports = {
             await interaction.deferReply();
 
             const url = `https://api.henrikdev.xyz/valorant/v3/matches/${region}/${gameName}/${tagLine}?force=true&api_key=${apiKey}`;
-            console.log("URL :", url);
+            //console.log("URL :", url);
 
             const response = await fetch(url);
 

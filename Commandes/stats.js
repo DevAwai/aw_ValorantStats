@@ -30,7 +30,7 @@ async function checkForNewGames(client) {
         while (retries > 0) {
             try {
                 const url = `https://api.henrikdev.xyz/valorant/v3/matches/eu/${player.name}/${player.tag}?force=true&api_key=${apiKey}`;
-                console.log("URL :", url);
+                //console.log("URL :", url);
 
                 const response = await fetch(url);
                 if (!response.ok) {
@@ -137,7 +137,7 @@ module.exports = {
             await interaction.deferReply();
 
             const statsUrl = `https://api.henrikdev.xyz/valorant/v2/mmr/${region}/${gameName}/${tagLine}?api_key=${apiKey}`;
-            console.log("URL Stats :", statsUrl);
+            //console.log("URL Stats :", statsUrl);
 
             const statsResponse = await fetch(statsUrl);
             if (!statsResponse.ok) {
@@ -153,7 +153,7 @@ module.exports = {
             }
 
             const accountUrl = `https://api.henrikdev.xyz/valorant/v1/account/${gameName}/${tagLine}?api_key=${apiKey}`;
-            console.log("URL Account :", accountUrl);
+            //console.log("URL Account :", accountUrl);
 
             const accountResponse = await fetch(accountUrl);
             if (!accountResponse.ok) {
