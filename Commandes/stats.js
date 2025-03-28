@@ -144,37 +144,37 @@ module.exports = {
 
             const statsUrl = `https://api.henrikdev.xyz/valorant/v2/mmr/${region}/${gameName}/${tagLine}?api_key=${apiKey}`;
             console.log("URL Stats :", statsUrl);
-            
+
             const statsResponse = await fetch(statsUrl);
             if (!statsResponse.ok) {
                 throw new Error(`Erreur API Stats : ${statsResponse.status} ${statsResponse.statusText}`);
             }
-            
+
             const statsData = await statsResponse.json();
-            
+
             if (!statsData.data) {
                 return interaction.editReply({
                     content: "❌ Impossible de récupérer les statistiques pour ce joueur.",
                 });
             }
-            
+
             const accountUrl = `https://api.henrikdev.xyz/valorant/v1/account/${gameName}/${tagLine}?api_key=${apiKey}`;
             console.log("URL Account :", accountUrl);
-            
+
             const accountResponse = await fetch(accountUrl);
             if (!accountResponse.ok) {
                 throw new Error(`Erreur API Account : ${accountResponse.status} ${accountResponse.statusText}`);
             }
-            
+
             const accountData = await accountResponse.json();
-            
+
             if (!accountData.data) {
                 return interaction.editReply({
                     content: "❌ Impossible de récupérer les informations du joueur.",
                 });
             }
-            
-            const playerCard = accountData.data.card.large; 
+
+            const playerCardSmall = accountData.data.card.small; 
             const currentData = statsData.data.current_data;
             const highestRank = statsData.data.highest_rank;
             const elo = currentData.elo || "Inconnu";
@@ -186,7 +186,7 @@ module.exports = {
                 .setTitle(`🏆 Stats Ranked - ${gameName}#${tagLine}`)
                 .setColor("#3498db")
                 .setDescription("📊 Statistiques du mode Ranked")
-                .setImage(playerCard) 
+                .setThumbnail(playerCardSmall)
                 .addFields(
                     { name: "🔹 Rang Actuel", value: `${currentRank}`, inline: true },
                     { name: "🔝 Plus Haut Rang", value: `${highestRank.patched_tier || "Inconnu"}`, inline: true },
