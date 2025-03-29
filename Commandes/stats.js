@@ -36,7 +36,7 @@ function saveTrackedPlayers(players) {
 }
 
 async function checkForNewGames(client) {
-    const trackedPlayers = loadTrackedPlayers();
+    let trackedPlayers = loadTrackedPlayers();
     for (const player of trackedPlayers) {
         let retries = 3;
         while (retries > 0) {
@@ -116,7 +116,7 @@ async function checkForNewGames(client) {
 
         await sleep(1000);
     }
-
+    trackedPlayers = loadTrackedPlayers();
     saveTrackedPlayers(trackedPlayers);
 }
 
