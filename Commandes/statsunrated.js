@@ -4,7 +4,7 @@ require("dotenv").config();
 const apiKey = process.env.HENRIK_API_KEY;
 
 module.exports = {
-    name: "statstunrated",
+    name: "statsunrated",
     description: "Affiche le total des kills et morts pour toutes les parties Unrated d'un joueur",
     permissions: "Aucune",
     dm: false,
