@@ -60,14 +60,14 @@ module.exports = {
                     totalKills += player.stats.kills;
                     totalDeaths += player.stats.deaths;
             
-                    if (match.teams.blue && match.teams.blue.team && match.teams.red && match.teams.red.team) {
-                        if (player.team.toLowerCase() === match.teams.blue.team.toLowerCase()) {
+                    if (match.teams.blue && match.teams.red) {
+                        if (player.team.toLowerCase() === "blue") {
                             if (match.teams.blue.has_won) {
                                 totalWins++;
                             } else {
                                 totalLosses++;
                             }
-                        } else if (player.team.toLowerCase() === match.teams.red.team.toLowerCase()) {
+                        } else if (player.team.toLowerCase() === "red") {
                             if (match.teams.red.has_won) {
                                 totalWins++;
                             } else {
