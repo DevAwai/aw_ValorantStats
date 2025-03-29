@@ -27,10 +27,10 @@ function saveCredits(credits) {
 
 function getUserBalance(userId) {
     const credits = loadCredits();
-    if (!credits[userId]) {
+    if (!(userId in credits)) { 
         createUserIfNotExists(userId);
     }
-    return credits[userId];
+    return credits[userId]; 
 }
 
 function updateUserBalance(userId, amount) {
