@@ -30,7 +30,7 @@ module.exports = {
                 });
             }
 
-            trackedPlayers.push({ name, tag, lastMatchesPlayed: 0, lastMatchesWon: 0, lastMatchesLost: 0 });
+            trackedPlayers.push({ name, tag, lastMatchId: null });
             saveTrackedPlayers(trackedPlayers);
 
             await interaction.reply({
