@@ -14,10 +14,11 @@ module.exports = {
 
             const embed = new EmbedBuilder()
                 .setColor("#00FF00")
-                .setTitle("💰 Solde de crédits")
-                .setDescription(`**${username}**, vous avez actuellement **${balance}** crédits.`)
+                .setTitle("💰 Solde de vos VCOINS")
+                .setDescription(`**${username}**, vous avez actuellement **${balance}** VCOINS.`)
                 .setThumbnail(interaction.user.displayAvatarURL())
-                .setFooter({ text: "Casino Valorant Stats", iconURL: interaction.client.user.displayAvatarURL() });
+                .setFooter({ text: "Casino Valorant Stats", iconURL: interaction.client.user.displayAvatarURL() })
+                .setTimestamp();
 
             await interaction.reply({ embeds: [embed], ephemeral: false });
         } catch (error) {

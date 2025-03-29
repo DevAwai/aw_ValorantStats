@@ -44,7 +44,7 @@ module.exports = {
 
             if (montant > userBalance) {
                 return interaction.reply({
-                    content: `❌ Vous n'avez pas assez de crédits. Votre solde actuel est de ${userBalance} crédits.`,
+                    content: `❌ Vous n'avez pas assez de VCOINS. Votre solde actuel est de ${userBalance} VCOINS.`,
                     ephemeral: true,
                 });
             }
@@ -59,9 +59,9 @@ module.exports = {
             await interaction.reply({
                 content: `🎲 Le résultat est **${resultat}** ! ${
                     gain > 0
-                        ? `🎉 Félicitations, vous avez gagné **${gain} crédits** !`
+                        ? `🎉 Félicitations, vous avez gagné **${gain} VCOINS** !`
                         : "😢 Vous avez perdu votre mise."
-                } Votre nouveau solde est de **${newBalance} crédits**.`,
+                } Votre nouveau solde est de **${newBalance} VCOINS**.`,
             });
         } catch (error) {
             await handleError(interaction, error);
