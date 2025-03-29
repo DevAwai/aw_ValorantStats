@@ -41,7 +41,7 @@ function updateUserBalance(userId, amount) {
 
 function createUserIfNotExists(userId) {
     const credits = loadCredits();
-    if (!credits[userId]) {
+    if (!(userId in credits)) {
         credits[userId] = DEFAULT_BALANCE;
         saveCredits(credits);
     }
