@@ -4,7 +4,6 @@ const path = require('path');
 const dataPath = path.join(__dirname, 'credits.json');
 const DEFAULT_BALANCE = 1000;
 
-// Chargement des crédits depuis le fichier JSON
 function loadCredits() {
     try {
         if (!fs.existsSync(dataPath)) {
@@ -18,7 +17,6 @@ function loadCredits() {
     }
 }
 
-// Sauvegarde des crédits dans le fichier JSON
 function saveCredits(credits) {
     try {
         fs.writeFileSync(dataPath, JSON.stringify(credits, null, 2));
@@ -27,7 +25,6 @@ function saveCredits(credits) {
     }
 }
 
-// Récupère le solde d'un utilisateur et le crée si besoin
 function getUserBalance(userId) {
     const credits = loadCredits();
     if (!credits[userId]) {
@@ -36,14 +33,12 @@ function getUserBalance(userId) {
     return credits[userId];
 }
 
-// Met à jour le solde d'un utilisateur
 function updateUserBalance(userId, amount) {
     const credits = loadCredits();
-    credits[userId] = (credits[userId] || 0) + amount;
+    credits[userId] = Math.max((credits[userId] || 0) + amount, 0);
     saveCredits(credits);
 }
 
-// Crée un utilisateur avec le solde de départ
 function createUserIfNotExists(userId) {
     const credits = loadCredits();
     if (!credits[userId]) {

@@ -2,7 +2,6 @@ const { SlashCommandBuilder } = require("discord.js");
 const { handleError } = require("../utils/errorHandler");
 const { getUserBalance, updateUserBalance, createUserIfNotExists } = require("../utils/creditsManager");
 
-
 module.exports = {
     name: "gamble",
     description: "Parie sur pile ou face avec un montant",
@@ -32,9 +31,16 @@ module.exports = {
                 });
             }
 
-            // Vérifier que l'utilisateur a assez de crédits
+            if (montant <= 0) {
+                return interaction.reply({
+                    content: "❌ Le montant doit être supérieur à 0.",
+                    ephemeral: true,
+                });
+            }
+
             const userId = interaction.user.id;
-            const userBalance = await getUserBalance(userId); // À implémenter
+            createUserIfNotExists(userId);
+            const userBalance = getUserBalance(userId);
 
             if (montant > userBalance) {
                 return interaction.reply({
@@ -43,15 +49,19 @@ module.exports = {
                 });
             }
 
-            // Générer un résultat aléatoire
             const resultat = Math.random() < 0.5 ? "pile" : "face";
-            const gain = choix === resultat ? montant * 2 : 0;
+            const gain = choix === resultat ? montant : -montant;
 
-            // Mettre à jour le solde de l'utilisateur
-            await updateUserBalance(userId, gain - montant); // À implémenter
+            updateUserBalance(userId, gain);
+
+            const newBalance = getUserBalance(userId);
 
             await interaction.reply({
-                content: `🎲 Le résultat est **${resultat}** ! Vous avez ${gain > 0 ? `gagné ${gain} crédits !` : "perdu votre mise."}`,
+                content: `🎲 Le résultat est **${resultat}** ! ${
+                    gain > 0
+                        ? `🎉 Félicitations, vous avez gagné **${gain} crédits** !`
+                        : "😢 Vous avez perdu votre mise."
+                } Votre nouveau solde est de **${newBalance} crédits**.`,
             });
         } catch (error) {
             await handleError(interaction, error);
