@@ -41,8 +41,11 @@ async function checkForNewGames(client) {
         let retries = 3;
         while (retries > 0) {
             try {
-                const url = `https://api.henrikdev.xyz/valorant/v3/matches/eu/${player.name}/${player.tag}?force=true&api_key=${apiKey}`;
-                //console.log("URL :", url);
+                const encodedName = encodeURIComponent(player.name);
+                const encodedTag = encodeURIComponent(player.tag);
+
+                const url = `https://api.henrikdev.xyz/valorant/v3/matches/eu/${encodedName}/${encodedTag}?force=true&api_key=${apiKey}`;
+                console.log("URL :", url);
 
                 const response = await fetch(url);
                 if (!response.ok) {
