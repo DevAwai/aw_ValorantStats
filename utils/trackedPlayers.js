@@ -7,12 +7,7 @@ function loadTrackedPlayers() {
     if (!fs.existsSync(trackedPlayersPath)) {
         fs.writeFileSync(trackedPlayersPath, JSON.stringify([], null, 2));
     }
-    const players = JSON.parse(fs.readFileSync(trackedPlayersPath, "utf-8"));
-    return players.map(player => ({
-        ...player,
-        lastMatchesWon: player.lastMatchesWon || 0,
-        lastMatchesLost: player.lastMatchesLost || 0
-    }));
+    return JSON.parse(fs.readFileSync(trackedPlayersPath, "utf-8"));
 }
 
 function saveTrackedPlayers(players) {

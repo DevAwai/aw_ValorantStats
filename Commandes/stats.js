@@ -36,87 +36,69 @@ function saveTrackedPlayers(players) {
 }
 
 async function checkForNewGames(client) {
-    let trackedPlayers = loadTrackedPlayers();
+    const trackedPlayers = loadTrackedPlayers();
     for (const player of trackedPlayers) {
-        let retries = 3;
-        while (retries > 0) {
-            try {
-                const encodedName = encodeURIComponent(player.name);
-                const encodedTag = encodeURIComponent(player.tag);
+        try {
+            const encodedName = encodeURIComponent(player.name);
+            const encodedTag = encodeURIComponent(player.tag);
 
-                const url = `https://api.henrikdev.xyz/valorant/v3/matches/eu/${encodedName}/${encodedTag}?force=true&api_key=${apiKey}`;
-                console.log("URL :", url);
+            const url = `https://api.henrikdev.xyz/valorant/v3/matches/eu/${encodedName}/${encodedTag}?force=true&api_key=${apiKey}`;
+            const response = await fetch(url);
 
-                const response = await fetch(url);
-                if (!response.ok) {
-                    throw new Error(`Erreur API : ${response.status} ${response.statusText}`);
-                }
-
-                const data = await response.json();
-
-                if (!data.data || data.data.length === 0) {
-                    console.log(`Aucun match trouvé pour ${player.name}#${player.tag}`);
-                    break;
-                }
-
-                const lastCompetitiveMatch = data.data.find(match => match.metadata.mode === "Competitive");
-                if (!lastCompetitiveMatch) {
-                    console.log(`Aucun match compétitif trouvé pour ${player.name}#${player.tag}`);
-                    break;
-                }
-
-                const matchId = lastCompetitiveMatch.metadata.matchid;
-                const matchDetailsUrl = `https://tracker.gg/valorant/match/${matchId}`;
-                const map = lastCompetitiveMatch.metadata.map;
-                const roundsPlayed = lastCompetitiveMatch.metadata.rounds_played;
-
-                if (matchId !== player.lastMatchId) {
-                    const channel = client.channels.cache.get("1322904141164445727");
-                    if (channel) {
-                        const isWin = lastCompetitiveMatch.teams.red.has_won && lastCompetitiveMatch.players.all_players.some(p => p.name === player.name && p.team === "Red")
-                            || lastCompetitiveMatch.teams.blue.has_won && lastCompetitiveMatch.players.all_players.some(p => p.name === player.name && p.team === "Blue");
-
-                        const imageUrl = isWin
-                            ? "https://i.postimg.cc/HkLmrjp5/win.png"
-                            : "https://i.postimg.cc/9QNhZVMk/loose.png";
-
-                        const embed = new EmbedBuilder()
-                            .setTitle(isWin ? "✅ Valorant Stats - WIN" : "❌ Valorant Stats - LOOSE")
-                            .setDescription(isWin
-                                ? `**${player.name}#${player.tag}** vient de gagner un match compétitif 🥳`
-                                : `**${player.name}#${player.tag}** vient de perdre un match compétitif 😢`)
-                            .setImage(imageUrl)
-                            .addFields(
-                                { name: "🗺️ Carte", value: `${map}`, inline: true },
-                                { name: "🔹 Rounds joués", value: `${roundsPlayed}`, inline: true },
-                                { name: "🔗 Détails du match", value: `[Voir les détails](${matchDetailsUrl})`, inline: false }
-                            )
-                            .setColor(isWin ? "Green" : "Red")
-                            .setFooter({ text: "Mise à jour automatique" })
-                            .setTimestamp();
-
-                        await channel.send({ embeds: [embed] });
-
-                        player.lastMatchId = matchId;
-                    }
-                }
-                break;
-            } catch (error) {
-                console.error(`❌ Erreur lors de la vérification des stats de ${player.name}#${player.tag} :`, error);
-                retries -= 1;
-                if (retries === 0) {
-                    console.error(`❌ Échec de la vérification des stats de ${player.name}#${player.tag} après plusieurs tentatives.`);
-                } else {
-                    console.log(`🔄 Nouvelle tentative pour ${player.name}#${player.tag} (${3 - retries}/3)`);
-                }
+            if (!response.ok) {
+                throw new Error(`Erreur API : ${response.status} ${response.statusText}`);
             }
 
-            await sleep(1000);
-        }
+            const data = await response.json();
 
-        await sleep(1000);
+            if (!data.data || data.data.length === 0) {
+                console.log(`Aucun match trouvé pour ${player.name}#${player.tag}`);
+                continue;
+            }
+
+            const lastCompetitiveMatch = data.data.find(match => match.metadata.mode === "Competitive");
+            if (!lastCompetitiveMatch) {
+                console.log(`Aucun match compétitif trouvé pour ${player.name}#${player.tag}`);
+                continue;
+            }
+
+            const matchId = lastCompetitiveMatch.metadata.matchid;
+
+            if (matchId !== player.lastMatchId) {
+                const channel = client.channels.cache.get("1322904141164445727");
+                if (channel) {
+                    const isWin = lastCompetitiveMatch.teams.red.has_won && lastCompetitiveMatch.players.all_players.some(p => p.name === player.name && p.team === "Red")
+                        || lastCompetitiveMatch.teams.blue.has_won && lastCompetitiveMatch.players.all_players.some(p => p.name === player.name && p.team === "Blue");
+
+                    const imageUrl = isWin
+                        ? "https://i.postimg.cc/HkLmrjp5/win.png"
+                        : "https://i.postimg.cc/9QNhZVMk/loose.png";
+
+                    const embed = new EmbedBuilder()
+                        .setTitle(isWin ? "✅ Valorant Stats - WIN" : "❌ Valorant Stats - LOOSE")
+                        .setDescription(isWin
+                            ? `**${player.name}#${player.tag}** vient de gagner un match compétitif 🥳`
+                            : `**${player.name}#${player.tag}** vient de perdre un match compétitif 😢`)
+                        .setImage(imageUrl)
+                        .addFields(
+                            { name: "🗺️ Carte", value: `${lastCompetitiveMatch.metadata.map}`, inline: true },
+                            { name: "🔹 Rounds joués", value: `${lastCompetitiveMatch.metadata.rounds_played}`, inline: true },
+                            { name: "🔗 Détails du match", value: `[Voir les détails](https://tracker.gg/valorant/match/${matchId})`, inline: false }
+                        )
+                        .setColor(isWin ? "Green" : "Red")
+                        .setFooter({ text: "Mise à jour automatique" })
+                        .setTimestamp();
+
+                    await channel.send({ embeds: [embed] });
+
+                    player.lastMatchId = matchId;
+                }
+            }
+        } catch (error) {
+            console.error(`Erreur lors de la vérification des matchs pour ${player.name}#${player.tag} :`, error);
+        }
     }
-    trackedPlayers = loadTrackedPlayers();
+
     saveTrackedPlayers(trackedPlayers);
 }
 
