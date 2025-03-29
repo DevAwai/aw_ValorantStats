@@ -1,6 +1,7 @@
-const { SlashCommandBuilder } = require("discord.js");
+const { SlashCommandBuilder, EmbedBuilder } = require("discord.js");
 const fetch = (...args) => import("node-fetch").then(({ default: fetch }) => fetch(...args));
 require("dotenv").config();
+
 const apiKey = process.env.HENRIK_API_KEY;
 
 module.exports = {
@@ -59,9 +60,18 @@ module.exports = {
                 }
             });
 
-            return interaction.editReply({
-                content: `📊 **Stats Unrated pour ${gameName}#${tagLine}**\n\n🔹 Total Kills : ${totalKills}\n🔹 Total Morts : ${totalDeaths}`,
-            });
+            const embed = new EmbedBuilder()
+                .setTitle(`🏆 Stats Unranked - ${gameName}#${tagLine}`)
+                .setColor("#3498db")
+                .setDescription("📊 Statistiques du mode Unranked")
+                .addFields(
+                    { name: "🔹 Total Kills", value: `${totalKills}`, inline: true },
+                    { name: "🔹 Total Morts", value: `${totalDeaths}`, inline: true }
+                )
+                .setFooter({ text: "🔹Mode Unranked" })
+                .setTimestamp();
+
+            await interaction.editReply({ embeds: [embed] });
         } catch (error) {
             console.error("Erreur capturée :", error);
             await interaction.editReply({
