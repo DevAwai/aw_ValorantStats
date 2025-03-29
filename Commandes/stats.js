@@ -6,6 +6,18 @@ const fs = require("fs");
 const cron = require("node-cron");
 const apiKey = process.env.HENRIK_API_KEY;
 
+const rankColors = {
+    Iron: "#A6A6A6",
+    Bronze: "#CD7F32",
+    Silver: "#C0C0C0",
+    Gold: "#FFD700",
+    Platinum: "#00FFFF",
+    Diamond: "#0A74DA",
+    Ascendant: "#2ECC71",
+    Immortal: "#E74C3C",
+    Radiant: "#F1C40F",
+};
+
 const trackedPlayersPath = path.join(__dirname, "..", "suivi_joueurs.json");
 
 function sleep(ms) {
@@ -30,7 +42,7 @@ async function checkForNewGames(client) {
         while (retries > 0) {
             try {
                 const url = `https://api.henrikdev.xyz/valorant/v3/matches/eu/${player.name}/${player.tag}?force=true&api_key=${apiKey}`;
-                console.log("URL :", url);
+                //console.log("URL :", url);
 
                 const response = await fetch(url);
                 if (!response.ok) {
@@ -137,8 +149,6 @@ module.exports = {
             await interaction.deferReply();
 
             const statsUrl = `https://api.henrikdev.xyz/valorant/v2/mmr/${region}/${gameName}/${tagLine}?api_key=${apiKey}`;
-            console.log("URL Stats :", statsUrl);
-
             const statsResponse = await fetch(statsUrl);
             if (!statsResponse.ok) {
                 throw new Error(`Erreur API Stats : ${statsResponse.status} ${statsResponse.statusText}`);
@@ -153,8 +163,6 @@ module.exports = {
             }
 
             const accountUrl = `https://api.henrikdev.xyz/valorant/v1/account/${gameName}/${tagLine}?api_key=${apiKey}`;
-            console.log("URL Account :", accountUrl);
-
             const accountResponse = await fetch(accountUrl);
             if (!accountResponse.ok) {
                 throw new Error(`Erreur API Account : ${accountResponse.status} ${accountResponse.statusText}`);
@@ -175,10 +183,12 @@ module.exports = {
             const currentRank = currentData.currenttierpatched || "Non classé";
             const rankingInTier = currentData.ranking_in_tier || "Inconnu";
             const mmrChange = currentData.mmr_change_to_last_game || 0;
+            const rankBase = currentRank.split(" ")[0];
+            const embedColor = rankColors[rankBase] || "#3498db"; 
 
             const embed = new EmbedBuilder()
                 .setTitle(`🏆 Stats Ranked - ${gameName}#${tagLine}`)
-                .setColor("#3498db")
+                .setColor(embedColor)
                 .setDescription("📊 Statistiques du mode Ranked")
                 .setThumbnail(playerCardSmall)
                 .addFields(

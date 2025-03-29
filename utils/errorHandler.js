@@ -9,10 +9,14 @@ async function handleError(interaction, error) {
         .setDescription(`\`\`\`js\n${error.stack?.slice(0, 1000) || error.message}\n\`\`\``)
         .setFooter({ text: "Réessaie plus tard ou @Khalifouille / @Awai" });
 
-    if (interaction.replied || interaction.deferred) {
-        await interaction.editReply({ embeds: [errorEmbed] });
-    } else {
-        await interaction.reply({ embeds: [errorEmbed], ephemeral: true });
+    try {
+        if (interaction.replied || interaction.deferred) {
+            await interaction.editReply({ embeds: [errorEmbed] });
+        } else {
+            await interaction.reply({ embeds: [errorEmbed], ephemeral: true });
+        }
+    } catch (err) {
+        console.error("❌ Impossible de répondre à l'interaction :", err);
     }
 }
 
