@@ -6,7 +6,7 @@ const apiKey = process.env.HENRIK_API_KEY;
 
 module.exports = {
     name: "unrated",
-    description: "Affiche le total des kills et morts pour toutes les parties Unrated d'un joueur",
+    description: "Affiche le total des kills, morts, victoires et défaites pour toutes les parties Unrated d'un joueur",
     permissions: "Aucune",
     dm: false,
     cooldown: 10,
@@ -51,12 +51,30 @@ module.exports = {
 
             let totalKills = 0;
             let totalDeaths = 0;
+            let totalWins = 0;
+            let totalLosses = 0;
 
             matchesData.data.forEach(match => {
                 const player = match.players.all_players.find(p => p.name === gameName && p.tag === tagLine);
                 if (player) {
                     totalKills += player.stats.kills;
                     totalDeaths += player.stats.deaths;
+            
+                    if (match.teams.blue && match.teams.blue.team && match.teams.red && match.teams.red.team) {
+                        if (player.team.toLowerCase() === match.teams.blue.team.toLowerCase()) {
+                            if (match.teams.blue.has_won) {
+                                totalWins++;
+                            } else {
+                                totalLosses++;
+                            }
+                        } else if (player.team.toLowerCase() === match.teams.red.team.toLowerCase()) {
+                            if (match.teams.red.has_won) {
+                                totalWins++;
+                            } else {
+                                totalLosses++;
+                            }
+                        }
+                    }
                 }
             });
 
@@ -66,7 +84,9 @@ module.exports = {
                 .setDescription("📊 Statistiques du mode Unranked")
                 .addFields(
                     { name: "🔹 Total Kills", value: `${totalKills}`, inline: true },
-                    { name: "🔹 Total Morts", value: `${totalDeaths}`, inline: true }
+                    { name: "🔹 Total Morts", value: `${totalDeaths}`, inline: true },
+                    { name: "✅ Total Victoires", value: `${totalWins}`, inline: true },
+                    { name: "❌ Total Défaites", value: `${totalLosses}`, inline: true }
                 )
                 .setFooter({ text: "🔹Mode Unranked" })
                 .setTimestamp();
