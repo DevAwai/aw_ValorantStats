@@ -13,6 +13,25 @@ bot.login(config.token);
 loadCommands(bot);
 loadEvents(bot);
 
+let bonus = [];
+try {
+    if (!fs.existsSync("bonus.json")) {
+        fs.writeFileSync("bonus.json", JSON.stringify([]));
+        console.log("✅ Fichier bonus.json créé.");
+    }
+    const data = fs.readFileSync("bonus.json", "utf-8");
+    bonus = JSON.parse(data);
+} catch (error) {
+    console.error("Erreur lors du chargement de bonus.json :", error);
+}
+
+function savebonus() {
+    try {
+        fs.writeFileSync("bonus.json", JSON.stringify(bonus, null, 2));
+    } catch (error) {
+        console.error("Erreur lors de la sauvegarde de bonus.json :", error);
+    }
+}
 
 function updateBotStatus() {
     try {
@@ -27,7 +46,6 @@ function updateBotStatus() {
     }
 }
 
-
 bot.once('ready', () => {
     updateBotStatus();
     setInterval(() => {
@@ -35,7 +53,6 @@ bot.once('ready', () => {
         console.log("🔍 Vérification des parties terminée !");
     }, 60000);
 
-    
     setInterval(() => {
         updateBotStatus();
         console.log("📢 Statut mis à jour !");
@@ -50,8 +67,21 @@ bot.once('ready', () => {
 bot.on("messageCreate", async (message) => {
     if (message.channel.id === "1322904141164445727") {
         if (message.content === "Khali t'es un bon") {
+            if (bonus.includes(message.author.id)) {
+                try {
+                    await message.delete(); 
+                    console.log(`❌ ${message.author.tag} a déjà reçu le bonus.`);
+                } catch (error) {
+                    console.error(`❌ Impossible de supprimer le message de ${message.author.tag} :`, error);
+                }
+                return; 
+            }
+            bonus.push(message.author.id);
+            savebonus(); 
             updateUserBalance(message.author.id, 1000);
+
             try {
+                await message.delete();
                 await message.author.send("Message de Khali : Bon toutou");
                 console.log(`🎉 1000 VCOINS ajoutés à ${message.author.tag} et message envoyé en MP.`);
             } catch (error) {
