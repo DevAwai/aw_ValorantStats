@@ -1,7 +1,6 @@
 const { SlashCommandBuilder, EmbedBuilder } = require("discord.js");
 const { loadCredits } = require("../utils/creditsManager");
 const { checkCooldown } = require("../utils/cooldownManager");
-const { cooldown } = require("./credit");
 
 module.exports = {
     name: "soldeall",
@@ -9,7 +8,6 @@ module.exports = {
     cooldown: 2000,
     options: [],
     async execute(interaction) {
-
         const cooldownResult = checkCooldown(interaction.user.id, this.name, this.cooldown);
         if (cooldownResult !== true) {
             return interaction.reply({ content: cooldownResult, ephemeral: true });
@@ -32,13 +30,12 @@ module.exports = {
                 .setFooter({ text: "Casino Valorant Stats", iconURL: interaction.client.user.displayAvatarURL() })
                 .setTimestamp();
 
+            let creditsList = "";
             for (const userId in credits) {
-                embed.addFields({
-                    name: "gaygay", 
-                    value: `<@${userId}> : **${credits[userId]} VCOINS**`, 
-                    inline: true,
-                });
+                creditsList += `<@${userId}> : **${credits[userId]} VCOINS**\n`;
             }
+
+            embed.addFields({ name: "\u200B", value: creditsList });
 
             await interaction.reply({ embeds: [embed], ephemeral: false });
         } catch (error) {
