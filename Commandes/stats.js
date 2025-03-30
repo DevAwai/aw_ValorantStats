@@ -38,7 +38,8 @@ function saveTrackedPlayers(players) {
 
 async function checkForNewGames(client) {
     const trackedPlayers = loadTrackedPlayers();
-    for (const player of trackedPlayers) {
+    for (let i = 0; i < trackedPlayers.length; i++) {
+        const player = trackedPlayers[i];
         try {
             const encodedName = encodeURIComponent(player.name);
             const encodedTag = encodeURIComponent(player.tag);
@@ -47,19 +48,27 @@ async function checkForNewGames(client) {
             const response = await fetch(url);
 
             if (!response.ok) {
+                const errorData = await response.json();
+
+                if (errorData.errors && errorData.errors[0]?.code === 22 && errorData.errors[0]?.message === "Account not found") {
+                    console.log(`Le compte ${player.name}#${player.tag} est introuvable. Il a été retiré de la liste des suivis.`);
+                    
+                    trackedPlayers.splice(i, 1);
+                    i--;
+                    continue;
+                }
+
                 throw new Error(`Erreur API : ${response.status} ${response.statusText}`);
             }
 
             const data = await response.json();
 
             if (!data.data || data.data.length === 0) {
-                //console.log(`Aucun match trouvé pour ${player.name}#${player.tag}`);
                 continue;
             }
 
             const lastCompetitiveMatch = data.data.find(match => match.metadata.mode === "Competitive");
             if (!lastCompetitiveMatch) {
-                //console.log(`Aucun match compétitif trouvé pour ${player.name}#${player.tag}`);
                 continue;
             }
 
