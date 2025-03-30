@@ -23,6 +23,8 @@ module.exports = {
                 });
             }
 
+            const sortedCredits = Object.entries(credits).sort(([, a], [, b]) => b - a);
+
             const embed = new EmbedBuilder()
                 .setColor("#00FF00")
                 .setTitle("💰 Solde de tous les joueurs")
@@ -31,8 +33,8 @@ module.exports = {
                 .setTimestamp();
 
             let creditsList = "";
-            for (const userId in credits) {
-                creditsList += `<@${userId}> : **${credits[userId]} VCOINS**\n`;
+            for (const [userId, balance] of sortedCredits) {
+                creditsList += `<@${userId}> : **${balance} VCOINS**\n`;
             }
 
             embed.addFields({ name: "\u200B", value: creditsList });
