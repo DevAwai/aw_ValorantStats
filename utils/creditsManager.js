@@ -78,6 +78,8 @@ function dondekhaliopauvres(client) {
 }
 
 module.exports = {
+    loadCredits,
+    saveCredits,
     getUserBalance,
     updateUserBalance,
     createUserIfNotExists,
