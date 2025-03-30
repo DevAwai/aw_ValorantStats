@@ -40,4 +40,9 @@ bot.once('ready', () => {
         updateBotStatus();
         console.log("📢 Statut mis à jour !");
     }, 10800000);
+
+    setInterval(() => {
+        console.log("🔄 Vérification des joueurs avec 0 crédits...");
+        dondekhaliopauvres(bot);
+    }, 300000);
 });

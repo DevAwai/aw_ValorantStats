@@ -71,8 +71,3 @@ module.exports = {
         }
     },
 };
-
-cron.schedule("*/5 * * * *", () => {
-    console.log("Vérification des joueurs avec 0 crédits...");
-    dondekhaliopauvres(client);
-});
