@@ -25,8 +25,8 @@ module.exports = {
 
             for (const userId in credits) {
                 embed.addFields({
-                    name: `<@${userId}>`,
-                    value: `**${credits[userId]} VCOINS**`,
+                    name: "gaygay", 
+                    value: `<@${userId}> : **${credits[userId]} VCOINS**`, 
                     inline: true,
                 });
             }

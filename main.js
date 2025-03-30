@@ -44,5 +44,5 @@ bot.once('ready', () => {
     setInterval(() => {
         console.log("🔄 Vérification des joueurs avec 0 crédits...");
         dondekhaliopauvres(bot);
-    }, 300000);
+    }, 14400000);
 });

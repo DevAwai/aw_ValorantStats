@@ -51,11 +51,11 @@ function dondekhaliopauvres(client) {
     const credits = loadCredits();
     const updatedUsers = [];
 
-    console.log("Chargement des crédits :", credits);
+    //console.log("Chargement des crédits :", credits);
 
     for (const userId in credits) {
         if (credits[userId] === 0) {
-            console.log(`Utilisateur ${userId} a 0 crédits. Ajout de 100 crédits.`);
+            //console.log(`Utilisateur ${userId} a 0 crédits. Ajout de 100 crédits.`);
             credits[userId] += 100;
             updatedUsers.push(userId);
         }
