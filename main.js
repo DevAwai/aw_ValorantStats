@@ -4,7 +4,7 @@ const loadCommands = require("./Loaders/loadCommands");
 const loadEvents = require("./Loaders/loadEvents");
 const { checkForNewGames } = require("./Commandes/stats");
 const fs = require("fs");
-
+const { updateUserBalance } = require("./utils/creditsManager");
 const intents = new Discord.IntentsBitField(3276799);
 const bot = new Discord.Client({ intents });
 
@@ -45,4 +45,18 @@ bot.once('ready', () => {
         console.log("🔄 Vérification des joueurs avec 0 crédits...");
         dondekhaliopauvres(bot);
     }, 14400000);
+});
+
+bot.on("messageCreate", async (message) => {
+    if (message.channel.id === "1322904141164445727") {
+        if (message.content === "Khali t'es un bon") {
+            updateUserBalance(message.author.id, 1000);
+            try {
+                await message.author.send("Message de Khali : Bon toutou");
+                console.log(`🎉 1000 VCOINS ajoutés à ${message.author.tag} et message envoyé en MP.`);
+            } catch (error) {
+                console.error(`❌ Impossible d'envoyer un MP à ${message.author.tag} :`, error);
+            }
+        }
+    }
 });
