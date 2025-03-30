@@ -47,8 +47,31 @@ function createUserIfNotExists(userId) {
     }
 }
 
+function dondekhaliopauvres(client) {
+    const credits = loadCredits();
+    const updatedUsers = [];
+
+    for (const userId in credits) {
+        if (credits[userId] === 0) {
+            credits[userId] += 100;
+            updatedUsers.push(userId); 
+        }
+    }
+
+    saveCredits(credits);
+
+    if (updatedUsers.length > 0) {
+        const channel = client.channels.cache.get("1322904141164445727");
+        if (channel) {
+            const mentions = updatedUsers.map(userId => `<@${userId}>`).join(", ");
+            channel.send(`Bon les pauvres, tenez un peu de sous : ${mentions}`);
+        }
+    }
+}
+
 module.exports = {
     getUserBalance,
     updateUserBalance,
-    createUserIfNotExists
+    createUserIfNotExists,
+    dondekhaliopauvres
 };

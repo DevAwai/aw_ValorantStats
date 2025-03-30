@@ -1,6 +1,9 @@
 const { SlashCommandBuilder } = require("discord.js");
 const { handleError } = require("../utils/errorHandler");
 const { getUserBalance, updateUserBalance, createUserIfNotExists } = require("../utils/creditsManager");
+const cron = require("node-cron");
+const { dondekhaliopauvres } = require("../utils/creditsManager");
+
 
 module.exports = {
     name: "gamble",
@@ -68,3 +71,8 @@ module.exports = {
         }
     },
 };
+
+cron.schedule("*/5 * * * *", () => {
+    console.log("Vérification des joueurs avec 0 crédits...");
+    dondekhaliopauvres(client);
+});
