@@ -7,6 +7,7 @@ const fs = require("fs");
 const { updateUserBalance } = require("./utils/creditsManager");
 const intents = new Discord.IntentsBitField(3276799);
 const bot = new Discord.Client({ intents });
+const cooldowns = new Map();
 
 bot.commands = new Discord.Collection();
 bot.login(config.token);
@@ -89,4 +90,40 @@ bot.on("messageCreate", async (message) => {
             }
         }
     }
+});
+
+bot.on("interactionCreate", async (interaction) => {
+    if (!interaction.isCommand()) return;
+
+    const command = bot.commands.get(interaction.commandName);
+    if (!command) return;
+
+    const cooldownTime = command.cooldown || 2000;
+    const userId = interaction.user.id;
+
+    if (cooldowns.has(userId)) {
+        const expirationTime = cooldowns.get(userId);
+        const remainingTime = expirationTime - Date.now();
+
+        if (remainingTime > 0) {
+            return interaction.reply({
+                content: `⏳ Merci d'attendre ${Math.ceil(remainingTime / 1000)} seconde(s) avant de réutiliser cette commande.`,
+                ephemeral: true,
+            });
+        }
+    }
+
+    cooldowns.set(userId, Date.now() + cooldownTime);
+
+    try {
+        await command.execute(interaction);
+    } catch (error) {
+        console.error(`Erreur lors de l'exécution de la commande ${command.name} :`, error);
+        await interaction.reply({
+            content: "❌ Une erreur est survenue lors de l'exécution de la commande.",
+            ephemeral: true,
+        });
+    }
+
+    setTimeout(() => cooldowns.delete(userId), cooldownTime);
 });
