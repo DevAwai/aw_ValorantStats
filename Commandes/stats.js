@@ -5,6 +5,7 @@ const path = require("path");
 const fs = require("fs"); 
 const cron = require("node-cron");
 const apiKey = process.env.HENRIK_API_KEY;
+const { checkCooldown } = require("../utils/cooldownManager");
 
 const rankColors = {
     Iron: "#A6A6A6",
@@ -52,13 +53,13 @@ async function checkForNewGames(client) {
             const data = await response.json();
 
             if (!data.data || data.data.length === 0) {
-                console.log(`Aucun match trouvé pour ${player.name}#${player.tag}`);
+                //console.log(`Aucun match trouvé pour ${player.name}#${player.tag}`);
                 continue;
             }
 
             const lastCompetitiveMatch = data.data.find(match => match.metadata.mode === "Competitive");
             if (!lastCompetitiveMatch) {
-                console.log(`Aucun match compétitif trouvé pour ${player.name}#${player.tag}`);
+                //console.log(`Aucun match compétitif trouvé pour ${player.name}#${player.tag}`);
                 continue;
             }
 
@@ -107,7 +108,7 @@ module.exports = {
     description: "Affiche les statistiques d'un joueur Valorant",
     permissions: "Aucune",
     dm: false,
-    cooldown: 10,
+    cooldown: 2000,
     options: [
         {
             type: "string",
@@ -120,6 +121,11 @@ module.exports = {
     async execute(interaction) {
         const pseudo = interaction.options.getString("pseudo");
         const region = "eu";
+
+        const cooldownResult = checkCooldown(interaction.user.id, this.name, this.cooldown);
+        if (cooldownResult !== true) {
+            return interaction.reply({ content: cooldownResult, ephemeral: true });
+        }
 
         if (!pseudo.match(/^.+#[0-9A-Za-z]{3,5}$/)) {
             return interaction.reply({

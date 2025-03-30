@@ -1,11 +1,21 @@
 const { MessageFlags } = require("discord.js");
 const { handleError } = require("../utils/errorHandler");
+const { checkCooldown } = require("../utils/cooldownManager");
+const { cooldown } = require("./matches");
+
 
 module.exports = {
     name: "reboot",
+    cooldown: 2000,
     description: "Rafraîchit toutes les commandes du bot",
 
     async execute(interaction) {
+
+        const cooldownResult = checkCooldown(interaction.user.id, this.name, this.cooldown);
+        if (cooldownResult !== true) {
+            return interaction.reply({ content: cooldownResult, ephemeral: true });
+        }
+
         try {
             await interaction.reply({ content: "🔄 Rafraîchissement des commandes en cours...", ephemeral: false });
 

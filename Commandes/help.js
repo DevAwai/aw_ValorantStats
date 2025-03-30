@@ -1,12 +1,21 @@
 const { EmbedBuilder } = require("discord.js");
 const fs = require("fs");
 const path = require("path");
+const { checkCooldown } = require("../utils/cooldownManager");
+const { cooldown } = require("./credit");
 
 module.exports = {
     name: "help",
+    cooldown: 2000,
     description: "Affiche la liste des commandes disponibles",
 
     async execute(interaction) {
+
+        const cooldownResult = checkCooldown(interaction.user.id, this.name, this.cooldown);
+        if (cooldownResult !== true) {
+            return interaction.reply({ content: cooldownResult, ephemeral: true });
+        }
+
         try {
             const commandsPath = path.join(__dirname);
             const commandFiles = fs.readdirSync(commandsPath).filter(file => file.endsWith(".js"));

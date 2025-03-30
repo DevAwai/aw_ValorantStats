@@ -1,14 +1,23 @@
 const { SlashCommandBuilder, EmbedBuilder } = require("discord.js");
 const { loadTrackedPlayers } = require("../utils/trackedPlayers");
 const { handleError } = require("../utils/errorHandler");
+const { checkCooldown } = require("../utils/cooldownManager");
+const { cooldown } = require("./matches");
 
 module.exports = {
     name: "listesuivi",
     description: "Affiche la liste des joueurs suivis par le bot",
+    cooldown: 2000,
     permissions: "Aucune",
     dm: false,
 
     async execute(interaction) {
+
+        const cooldownResult = checkCooldown(interaction.user.id, this.name, this.cooldown);
+        if (cooldownResult !== true) {
+            return interaction.reply({ content: cooldownResult, ephemeral: true });
+        }
+
         try {
             const trackedPlayers = loadTrackedPlayers();
 

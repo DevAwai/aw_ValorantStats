@@ -1,5 +1,6 @@
 const { SlashCommandBuilder, EmbedBuilder } = require("discord.js");
 const fetch = (...args) => import("node-fetch").then(({ default: fetch }) => fetch(...args));
+const { checkCooldown } = require("../utils/cooldownManager");
 require("dotenv").config();
 
 const apiKey = process.env.HENRIK_API_KEY;
@@ -9,7 +10,7 @@ module.exports = {
     description: "Affiche le total des kills, morts, victoires et défaites pour toutes les parties Unrated d'un joueur",
     permissions: "Aucune",
     dm: false,
-    cooldown: 10,
+    cooldown: 2000,
     options: [
         {
             type: "string",
@@ -22,6 +23,11 @@ module.exports = {
     async execute(interaction) {
         const pseudo = interaction.options.getString("pseudo");
         const region = "eu";
+
+        const cooldownResult = checkCooldown(interaction.user.id, this.name, this.cooldown);
+        if (cooldownResult !== true) {
+            return interaction.reply({ content: cooldownResult, ephemeral: true });
+        }
 
         if (!pseudo.match(/^.+#[0-9A-Za-z]{3,5}$/)) {
             return interaction.reply({

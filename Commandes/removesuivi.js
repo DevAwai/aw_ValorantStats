@@ -1,10 +1,13 @@
 const { SlashCommandBuilder } = require("discord.js");
 const { loadTrackedPlayers, saveTrackedPlayers } = require("../utils/trackedPlayers");
 const { handleError } = require("../utils/errorHandler");
+const { checkCooldown } = require("../utils/cooldownManager");
+const { cooldown } = require("./matches");
 
 module.exports = {
     name: "removesuivi",
     description: "Retire un joueur de la liste des surveillés",
+    cooldown: 2000,
     options: [
         {
             type: "string",
@@ -16,6 +19,12 @@ module.exports = {
         }
     ],
     async execute(interaction) {
+
+        const cooldownResult = checkCooldown(interaction.user.id, this.name, this.cooldown);
+        if (cooldownResult !== true) {
+            return interaction.reply({ content: cooldownResult, ephemeral: true });
+        }
+
         try {
             const pseudo = interaction.options.getString("pseudo");
             const [name, tag] = pseudo.split("#");

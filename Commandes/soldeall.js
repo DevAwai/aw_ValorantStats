@@ -1,11 +1,20 @@
 const { SlashCommandBuilder, EmbedBuilder } = require("discord.js");
 const { loadCredits } = require("../utils/creditsManager");
+const { checkCooldown } = require("../utils/cooldownManager");
+const { cooldown } = require("./credit");
 
 module.exports = {
     name: "soldeall",
     description: "Affiche le solde de tous les joueurs",
+    cooldown: 2000,
     options: [],
     async execute(interaction) {
+
+        const cooldownResult = checkCooldown(interaction.user.id, this.name, this.cooldown);
+        if (cooldownResult !== true) {
+            return interaction.reply({ content: cooldownResult, ephemeral: true });
+        }
+
         try {
             const credits = loadCredits();
 

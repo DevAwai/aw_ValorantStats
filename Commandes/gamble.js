@@ -2,12 +2,14 @@ const { SlashCommandBuilder } = require("discord.js");
 const { handleError } = require("../utils/errorHandler");
 const { getUserBalance, updateUserBalance, createUserIfNotExists } = require("../utils/creditsManager");
 const cron = require("node-cron");
-const { dondekhaliopauvres } = require("../utils/creditsManager");
+const { checkCooldown } = require("../utils/cooldownManager");
+const { cooldown } = require("./credit");
 
 
 module.exports = {
     name: "gamble",
     description: "Parie sur pile ou face avec un montant",
+    cooldown: 2000,
     options: [
         {
             type: "string",
@@ -23,6 +25,12 @@ module.exports = {
         },
     ],
     async execute(interaction) {
+
+        const cooldownResult = checkCooldown(interaction.user.id, this.name, this.cooldown);
+        if (cooldownResult !== true) {
+            return interaction.reply({ content: cooldownResult, ephemeral: true });
+        }
+        
         try {
             const choix = interaction.options.getString("choix").toLowerCase();
             const montant = interaction.options.getInteger("montant");
