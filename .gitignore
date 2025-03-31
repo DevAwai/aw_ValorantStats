@@ -2,3 +2,5 @@ config.js
 suivi_joueurs.json
 .env
 utils/credits.json
+bonus.json
+suivi_joueurs.json
