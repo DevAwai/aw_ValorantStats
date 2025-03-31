@@ -26,6 +26,10 @@ function placeBet(userId, couleur, mise) {
     return `✅ Votre mise de ${mise} VCOINS sur le cheval ${couleur} a été enregistrée !`;
 }
 
+function getAllBets() {
+    return bets;
+}
+
 async function animateRace(channel) {
     const trackLength = 10;
     const positions = { rouge: 0, bleu: 0, vert: 0, jaune: 0 };
@@ -79,4 +83,4 @@ function distributeWinnings(winner) {
     }
 }
 
-module.exports = { placeBet, animateRace };
+module.exports = { placeBet, animateRace, getAllBets };

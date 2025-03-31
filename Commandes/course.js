@@ -1,5 +1,5 @@
 const { SlashCommandBuilder } = require("discord.js");
-const { animateRace } = require("../utils/raceManager");
+const { animateRace, getAllBets } = require("../utils/raceManager");
 const { isBettingOpen, setBettingOpen } = require("../utils/etatparis");
 
 module.exports = {
@@ -28,6 +28,19 @@ module.exports = {
         await new Promise(resolve => setTimeout(resolve, 60000));
 
         setBettingOpen(false);
+
+        const bets = getAllBets();
+        let betSummary = "📊 **Résumé des paris :**\n";
+        for (const [userId, userBets] of Object.entries(bets)) {
+            const userMentions = `<@${userId}>`;
+            const userBetDetails = userBets
+                .map(bet => `- ${bet.mise} VCOINS sur ${bet.couleur}`)
+                .join("\n");
+            betSummary += `${userMentions} a parié :\n${userBetDetails}\n\n`;
+        }
+
+        await interaction.followUp(betSummary || "Aucun pari n'a été enregistré.");
+
         await interaction.followUp("⏳ Les paris sont maintenant fermés. La course commence !");
         const winner = await animateRace(interaction.channel);
         await interaction.followUp(`🎉 Félicitations au cheval **${winner}** pour sa victoire !`);
