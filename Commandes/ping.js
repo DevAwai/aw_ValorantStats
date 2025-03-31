@@ -16,7 +16,7 @@ module.exports = {
         }
 
         try {
-            await interaction.reply(`🏓 Pong ! Latence : \`${interaction.client.ws.ping}ms\``); // 🔹 Pas d'option ephemeral
+            await interaction.reply(`🏓 Pong ! Latence : \`${interaction.client.ws.ping}ms\``); 
         } catch (error) {
             await handleError(interaction, error);
         }

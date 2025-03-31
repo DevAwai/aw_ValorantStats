@@ -25,6 +25,15 @@ function saveCredits(credits) {
     }
 }
 
+function updateCredits(userId, amount) {
+    const credits = loadCredits();
+    if (!credits[userId]) {
+        credits[userId] = 0;
+    }
+    credits[userId] += amount;
+    saveCredits(credits);
+}
+
 function getUserBalance(userId) {
     const credits = loadCredits();
     if (!(userId in credits)) { 
@@ -83,5 +92,6 @@ module.exports = {
     getUserBalance,
     updateUserBalance,
     createUserIfNotExists,
-    dondekhaliopauvres
+    dondekhaliopauvres,
+    updateCredits,
 };
