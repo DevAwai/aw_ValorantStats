@@ -1,4 +1,4 @@
-const { SlashCommandBuilder } = require("discord.js");
+const { SlashCommandBuilder, EmbedBuilder } = require("discord.js");
 const { animateRace, getAllBets } = require("../utils/raceManager");
 const { isBettingOpen, setBettingOpen } = require("../utils/etatparis");
 
@@ -30,16 +30,26 @@ module.exports = {
         setBettingOpen(false);
 
         const bets = getAllBets();
-        let betSummary = "📊 **Résumé des paris :**\n";
+        const embed = new EmbedBuilder()
+            .setTitle("📊 Résumé des paris")
+            .setColor("#FFD700")
+            .setDescription("Voici les paris enregistrés pour cette course :")
+            .setFooter({ text: "Caisse de paris" })
+            .setTimestamp();
+
         for (const [userId, userBets] of Object.entries(bets)) {
             const userMentions = `<@${userId}>`;
             const userBetDetails = userBets
                 .map(bet => `- ${bet.mise} VCOINS sur ${bet.couleur}`)
                 .join("\n");
-            betSummary += `${userMentions} a parié :\n${userBetDetails}\n\n`;
+            embed.addFields({ name: userMentions, value: userBetDetails, inline: false });
         }
 
-        await interaction.followUp(betSummary || "Aucun pari n'a été enregistré.");
+        if (Object.keys(bets).length === 0) {
+            embed.setDescription("Aucun pari n'a été enregistré.");
+        }
+
+        await interaction.followUp({ embeds: [embed] });
 
         await interaction.followUp("⏳ Les paris sont maintenant fermés. La course commence !");
         const winner = await animateRace(interaction.channel);
