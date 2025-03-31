@@ -1,15 +1,16 @@
 const { SlashCommandBuilder } = require("discord.js");
 const { placeBet } = require("../utils/raceManager");
+const { bettingOpen } = require("./course");
 
 module.exports = {
     name: "miserchev",
-    description: "GAYGAY",
+    description: "Pariez sur un cheval pour la course en cours",
     cooldown: 2000,
     options: [
         {
             type: "string",
             name: "couleur",
-            description: "Choisissez entre 'pile' ou 'face'",
+            description: "Choisissez une couleur : rouge, bleu, vert, jaune",
             required: true,
         },
         {
@@ -20,6 +21,13 @@ module.exports = {
         },
     ],
     async execute(interaction) {
+        if (!bettingOpen) {
+            return interaction.reply({
+                content: "❌ Les paris ne sont pas ouverts actuellement. Attendez qu'une course soit annoncée.",
+                ephemeral: true,
+            });
+        }
+
         const couleur = interaction.options.getString("couleur");
         const mise = interaction.options.getInteger("mise");
 
