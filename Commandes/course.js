@@ -1,7 +1,6 @@
 const { SlashCommandBuilder } = require("discord.js");
 const { animateRace } = require("../utils/raceManager");
-
-let bettingOpen = false;
+const { isBettingOpen, setBettingOpen } = require("../utils/etatparis");
 
 module.exports = {
     name: "course",
@@ -17,18 +16,18 @@ module.exports = {
             });
         }
 
-        if (bettingOpen) {
+        if (isBettingOpen()) {
             return interaction.reply({
                 content: "❌ Une course est déjà en cours ou les paris sont ouverts.",
                 ephemeral: true,
             });
         }
 
-        bettingOpen = true; 
+        setBettingOpen(true); 
         await interaction.reply("🏇 La course va bientôt commencer ! Vous avez **1 minute** pour placer vos paris avec `/miserchev`.");
         await new Promise(resolve => setTimeout(resolve, 60000));
 
-        bettingOpen = false; 
+        setBettingOpen(false);
         await interaction.followUp("⏳ Les paris sont maintenant fermés. La course commence !");
         const winner = await animateRace(interaction.channel);
         await interaction.followUp(`🎉 Félicitations au cheval **${winner}** pour sa victoire !`);
