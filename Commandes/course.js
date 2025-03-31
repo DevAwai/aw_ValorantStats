@@ -30,6 +30,12 @@ module.exports = {
         setBettingOpen(false);
 
         const bets = getAllBets();
+
+        if (Object.keys(bets).length === 0) {
+            await interaction.followUp("❌ Aucune mise n'a été enregistrée. La course est annulée.");
+            return;
+        }
+
         const embed = new EmbedBuilder()
             .setTitle("📊 Résumé des paris")
             .setColor("#FFD700")
