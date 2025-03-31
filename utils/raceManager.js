@@ -30,6 +30,22 @@ function getAllBets() {
     return bets;
 }
 
+function calculateWinnings(winner) {
+    const winnings = {};
+    for (const [userId, userBets] of Object.entries(bets)) {
+        let totalWinnings = 0;
+        for (const bet of userBets) {
+            if (bet.couleur === winner) {
+                totalWinnings += bet.mise * 1.1;
+            }
+        }
+        if (totalWinnings > 0) {
+            winnings[userId] = totalWinnings;
+        }
+    }
+    return winnings;
+}
+
 async function animateRace(channel) {
     const trackLength = 10;
     const positions = { rouge: 0, bleu: 0, vert: 0, jaune: 0 };
@@ -83,4 +99,4 @@ function distributeWinnings(winner) {
     }
 }
 
-module.exports = { placeBet, animateRace, getAllBets };
+module.exports = { placeBet, animateRace, getAllBets, calculateWinnings };

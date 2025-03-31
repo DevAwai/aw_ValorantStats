@@ -1,5 +1,5 @@
 const { SlashCommandBuilder, EmbedBuilder } = require("discord.js");
-const { animateRace, getAllBets } = require("../utils/raceManager");
+const { animateRace, getAllBets, calculateWinnings } = require("../utils/raceManager");
 const { isBettingOpen, setBettingOpen } = require("../utils/etatparis");
 
 module.exports = {
@@ -42,7 +42,7 @@ module.exports = {
             const userBetDetails = userBets
                 .map(bet => `- ${bet.mise} VCOINS sur ${bet.couleur}`)
                 .join("\n");
-            embed.addFields({ name: userMentions, value: userBetDetails, inline: false });
+            embed.addFields({ name: '\u200B', value: `${userMentions}\n${userBetDetails}`, inline: false });
         }
 
         if (Object.keys(bets).length === 0) {
@@ -53,6 +53,27 @@ module.exports = {
 
         await interaction.followUp("⏳ Les paris sont maintenant fermés. La course commence !");
         const winner = await animateRace(interaction.channel);
-        await interaction.followUp(`🎉 Félicitations au cheval **${winner}** pour sa victoire !`);
+
+        const winnings = calculateWinnings(winner);
+        const winnersEmbed = new EmbedBuilder()
+            .setTitle("🎉 Résultats de la course")
+            .setColor("#00FF00")
+            .setDescription(`Le cheval gagnant est **${winner}** !`)
+            .setFooter({ text: "Félicitations aux gagnants !" })
+            .setTimestamp();
+
+        if (Object.keys(winnings).length > 0) {
+            for (const [userId, amount] of Object.entries(winnings)) {
+                winnersEmbed.addFields({
+                    name: '\u200B',
+                    value: `<@${userId}> a gagné **${amount} VCOINS** !`,
+                    inline: false,
+                });
+            }
+        } else {
+            winnersEmbed.setDescription(`Le cheval gagnant est **${winner}**, mais aucun pari gagnant n'a été enregistré.`);
+        }
+
+        await interaction.followUp({ embeds: [winnersEmbed] });
     },
 };
