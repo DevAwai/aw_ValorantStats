@@ -7,7 +7,7 @@ const apiKey = process.env.HENRIK_API_KEY;
 
 module.exports = {
     name: "unrated",
-    description: "Affiche le total des kills, morts, victoires et défaites pour les 10 dernières parties Unrated d'un joueur",
+    description: "Affiche les statistiques pour les 10 dernières parties Unrated d'un joueur",
     permissions: "Aucune",
     dm: false,
     cooldown: 2000,
