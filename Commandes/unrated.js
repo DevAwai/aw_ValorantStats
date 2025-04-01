@@ -7,7 +7,7 @@ const apiKey = process.env.HENRIK_API_KEY;
 
 module.exports = {
     name: "unrated",
-    description: "Affiche le total des kills, morts, victoires et défaites pour toutes les parties Unrated d'un joueur",
+    description: "Affiche le total des kills, morts, victoires et défaites pour les 10 dernières parties Unrated d'un joueur",
     permissions: "Aucune",
     dm: false,
     cooldown: 2000,
@@ -41,7 +41,7 @@ module.exports = {
         try {
             await interaction.deferReply();
 
-            const matchesUrl = `https://api.henrikdev.xyz/valorant/v3/matches/${region}/${gameName}/${tagLine}?force=true&mode=unrated&api_key=${apiKey}`;
+            const matchesUrl = `https://api.henrikdev.xyz/valorant/v3/matches/${region}/${gameName}/${tagLine}?force=true&mode=unrated&size=10&api_key=${apiKey}`;
             const matchesResponse = await fetch(matchesUrl);
             if (!matchesResponse.ok) {
                 throw new Error(`Erreur API Matches : ${matchesResponse.status} ${matchesResponse.statusText}`);

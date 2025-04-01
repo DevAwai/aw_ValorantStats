@@ -102,14 +102,12 @@ async function checkForNewGames(client) {
                     await channel.send({ embeds: [embed] });
 
                     player.lastMatchId = matchId;
+                    saveTrackedPlayers(trackedPlayers);
                 }
             }
         } catch (error) {
             console.error(`Erreur lors de la vérification des matchs pour ${player.name}#${player.tag} :`, error);
         }
-        
-        player.lastMatchId = matchId;
-        saveTrackedPlayers(trackedPlayers);
     }
 
 }
