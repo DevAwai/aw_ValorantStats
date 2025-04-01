@@ -94,7 +94,7 @@ module.exports = {
                     { name: "✅ Total Victoires", value: `${totalWins}`, inline: true },
                     { name: "❌ Total Défaites", value: `${totalLosses}`, inline: true }
                 )
-                .setFooter({ text: "🔹Mode Unranked" })
+                .setFooter({ text: "🔹 Basé sur les 5 derniers matchs uniquement" })
                 .setTimestamp();
 
             await interaction.editReply({ embeds: [embed] });
