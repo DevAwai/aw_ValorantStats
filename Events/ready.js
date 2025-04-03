@@ -9,11 +9,13 @@ module.exports = async bot => {
     setInterval(() => {
         const guild = bot.guilds.cache.get('1283354646567456799');
         if (guild) {
-            guild.members.cache.forEach(member => {
-                if (!member.user.bot && member.presence?.status !== 'offline') {
-                    updateUserBalance(member.id, 100);
-                }
-            });
+            guild.members.fetch().then(members => {
+                members.forEach(member => {
+                    if (!member.user.bot && member.presence && member.presence.status !== 'offline') {
+                        updateUserBalance(member.id, 100);
+                    }
+                });
+            }).catch(console.error);
         }
     }, 600000);
 };
