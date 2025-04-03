@@ -68,17 +68,17 @@ module.exports = {
             .setFooter({ text: "Félicitations aux gagnants !" })
             .setTimestamp();
 
-        if (Object.keys(winnings).length > 0) {
-            for (const [userId, amount] of Object.entries(winnings)) {
-                winnersEmbed.addFields({
-                    name: '\u200B',
-                    value: `<@${userId}> a gagné **${amount} VCOINS** !`,
-                    inline: false,
-                });
+            if (Object.keys(winnings).length > 0) {
+                for (const [userId, amount] of Object.entries(winnings)) {
+                    winnersEmbed.addFields({
+                        name: '\u200B',
+                        value: `<@${userId}> a gagné **${amount} VCOINS** !`,
+                        inline: false,
+                    });
+                }
+            } else {
+                winnersEmbed.setDescription(`Le cheval gagnant est **${winner}**, mais aucun pari gagnant n'a été enregistré.`);
             }
-        } else {
-            winnersEmbed.setDescription(`Le cheval gagnant est **${winner}**, mais aucun pari gagnant n'a été enregistré.`);
-        }
 
         await interaction.followUp({ embeds: [winnersEmbed] });
     },
