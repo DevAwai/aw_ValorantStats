@@ -12,7 +12,7 @@ module.exports = {
             .setTitle('Compétences Disponibles')
             .setDescription('Voici les compétences que vous pouvez acheter:')
             .addFields(
-                { name: 'Arabe', value: '**Prix:** 10,000 vcoins(Deviens ce que tu as voulu toujours être !)' }
+                { name: 'Voleur', value: '**Prix:** 10,000 vcoins(1 chance sur 10 de voler entre 1 - 5000 vcoins)' }
             )
             .setTimestamp();
 
