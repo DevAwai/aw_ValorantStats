@@ -37,15 +37,26 @@ function calculateWinnings(winner) {
     const normalizedWinner = winner.trim().toLowerCase();
     console.log("Cheval gagnant normalisé :", normalizedWinner);
 
+    if (!horses.includes(normalizedWinner)) {
+        console.error(`❌ Erreur : Le cheval gagnant "${normalizedWinner}" n'est pas valide.`);
+        return winnings;
+    }
+
     for (const [userId, userBets] of Object.entries(bets)) {
         let totalWinnings = 0;
+
         for (const bet of userBets) {
             const normalizedBetColor = bet.couleur.trim().toLowerCase();
             console.log(`Comparaison : pari "${normalizedBetColor}" contre gagnant "${normalizedWinner}"`);
+
             if (normalizedBetColor === normalizedWinner) {
-                totalWinnings += bet.mise * 1.1;
+                console.log(`✅ Pari gagnant trouvé : ${normalizedBetColor}`);
+                totalWinnings += Math.floor(bet.mise * 1.1); 
+            } else {
+                console.log(`❌ Pari perdant : ${normalizedBetColor}`);
             }
         }
+
         if (totalWinnings > 0) {
             winnings[userId] = totalWinnings;
         }
