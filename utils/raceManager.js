@@ -98,23 +98,11 @@ async function animateRace(channel) {
     }
 }
 
-function distributeWinnings(winner) {
-    for (const [userId, userBets] of Object.entries(bets)) {
-        let totalWinnings = 0;
-        for (const bet of userBets) {
-            if (bet.couleur === winner) {
-                totalWinnings += Math.floor(bet.mise * 1.1);
-            }
-        }
-
-        if (totalWinnings > 0) {
-            updateCredits(userId, totalWinnings);
-        }
-    }
-
+function resetBets() {
     for (const userId in bets) {
         delete bets[userId];
     }
+    console.log("✅ Les paris ont été réinitialisés.");
 }
 
-module.exports = { placeBet, animateRace, getAllBets, calculateWinnings, distributeWinnings };
+module.exports = { placeBet, animateRace, getAllBets, calculateWinnings, resetBets};

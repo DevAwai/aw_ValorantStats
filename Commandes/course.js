@@ -1,5 +1,5 @@
 const { SlashCommandBuilder, EmbedBuilder } = require("discord.js");
-const { animateRace, getAllBets, calculateWinnings } = require("../utils/raceManager");
+const { animateRace, getAllBets, calculateWinnings, resetBets } = require("../utils/raceManager");
 const { isBettingOpen, setBettingOpen } = require("../utils/etatparis");
 
 module.exports = {
@@ -81,5 +81,6 @@ module.exports = {
             }
 
         await interaction.followUp({ embeds: [winnersEmbed] });
+        resetBets();
     },
 };
