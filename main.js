@@ -6,7 +6,13 @@ const { checkForNewGames } = require("./Commandes/stats");
 const fs = require("fs");
 const { updateUserBalance } = require("./utils/creditsManager");
 const intents = new Discord.IntentsBitField(3276799);
-const bot = new Discord.Client({ intents });
+const bot = new Discord.Client({
+    intents: [
+        Discord.IntentsBitField.Flags.Guilds,
+        Discord.IntentsBitField.Flags.GuildMembers,
+        Discord.IntentsBitField.Flags.GuildPresences
+    ]
+});
 
 bot.commands = new Discord.Collection();
 bot.login(config.token);
