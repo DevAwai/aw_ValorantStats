@@ -91,8 +91,6 @@ async function animateRace(channel) {
 
         const winner = horses.find(horse => positions[horse] >= trackLength);
         if (winner) {
-            await channel.send(`🎉 **Le cheval ${winner} a gagné la course !**`);
-            distributeWinnings(winner);
             return winner;
         }
 
@@ -119,4 +117,4 @@ function distributeWinnings(winner) {
     }
 }
 
-module.exports = { placeBet, animateRace, getAllBets, calculateWinnings };
+module.exports = { placeBet, animateRace, getAllBets, calculateWinnings, distributeWinnings };
