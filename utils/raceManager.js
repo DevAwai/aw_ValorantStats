@@ -24,7 +24,6 @@ function placeBet(userId, couleur, mise) {
     }
 
     bets[userId].push({ couleur: normalizedCouleur, mise });
-    console.log("Paris mis à jour :", bets);
     return `✅ Votre mise de ${mise} VCOINS sur le cheval ${normalizedCouleur} a été enregistrée !`;
 }
 
@@ -35,7 +34,6 @@ function getAllBets() {
 function calculateWinnings(winner) {
     const winnings = {};
     const normalizedWinner = winner.trim().toLowerCase();
-    console.log("Cheval gagnant normalisé :", normalizedWinner);
 
     if (!horses.includes(normalizedWinner)) {
         console.error(`❌ Erreur : Le cheval gagnant "${normalizedWinner}" n'est pas valide.`);
@@ -47,10 +45,8 @@ function calculateWinnings(winner) {
 
         for (const bet of userBets) {
             const normalizedBetColor = bet.couleur.trim().toLowerCase();
-            console.log(`Comparaison : pari "${normalizedBetColor}" contre gagnant "${normalizedWinner}"`);
 
             if (normalizedBetColor === normalizedWinner) {
-                console.log(`✅ Pari gagnant trouvé : ${normalizedBetColor}`);
                 totalWinnings += Math.floor(bet.mise * 1.1); 
             } else {
                 console.log(`❌ Pari perdant : ${normalizedBetColor}`);
