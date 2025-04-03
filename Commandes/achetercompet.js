@@ -56,7 +56,7 @@ module.exports = {
 
         await interaction.reply({ 
             content: `Achat réussi! Vous avez acquis la compétence: **${competence}** pour **${competPrice} vcoins**.`,
-            ephemeral: false
+            ephemeral: true
         });
     }
 };

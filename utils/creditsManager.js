@@ -87,6 +87,13 @@ function dondekhaliopauvres(client) {
     }
 }
 
+function getAllUsersWithBalance() {
+    const credits = loadCredits();
+    return Object.entries(credits)
+        .filter(([_, balance]) => balance > 0) 
+        .map(([id, balance]) => ({ id, balance }));
+}
+
 module.exports = {
     loadCredits,
     saveCredits,
@@ -95,4 +102,5 @@ module.exports = {
     createUserIfNotExists,
     dondekhaliopauvres,
     updateCredits,
+    getAllUsersWithBalance, 
 };
