@@ -10,7 +10,8 @@ const horseIcons = {
 };
 
 function placeBet(userId, couleur, mise) {
-    if (!horses.includes(couleur)) {
+    const normalizedCouleur = couleur.trim().toLowerCase();
+    if (!horses.includes(normalizedCouleur)) {
         return "❌ Couleur invalide. Choisissez parmi : rouge, bleu, vert, jaune.";
     }
 
@@ -22,8 +23,9 @@ function placeBet(userId, couleur, mise) {
         bets[userId] = [];
     }
 
-    bets[userId].push({ couleur, mise });
-    return `✅ Votre mise de ${mise} VCOINS sur le cheval ${couleur} a été enregistrée !`;
+    bets[userId].push({ couleur: normalizedCouleur, mise });
+    console.log("Paris mis à jour :", bets);
+    return `✅ Votre mise de ${mise} VCOINS sur le cheval ${normalizedCouleur} a été enregistrée !`;
 }
 
 function getAllBets() {
@@ -32,10 +34,15 @@ function getAllBets() {
 
 function calculateWinnings(winner) {
     const winnings = {};
+    const normalizedWinner = winner.trim().toLowerCase();
+    console.log("Cheval gagnant normalisé :", normalizedWinner);
+
     for (const [userId, userBets] of Object.entries(bets)) {
         let totalWinnings = 0;
         for (const bet of userBets) {
-            if (bet.couleur === winner) {
+            const normalizedBetColor = bet.couleur.trim().toLowerCase();
+            console.log(`Comparaison : pari "${normalizedBetColor}" contre gagnant "${normalizedWinner}"`);
+            if (normalizedBetColor === normalizedWinner) {
                 totalWinnings += bet.mise * 1.1;
             }
         }
@@ -43,6 +50,8 @@ function calculateWinnings(winner) {
             winnings[userId] = totalWinnings;
         }
     }
+
+    console.log("Gains calculés :", winnings);
     return winnings;
 }
 
