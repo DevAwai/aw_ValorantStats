@@ -10,7 +10,7 @@ const MIN_EARN = 800;
 const MAX_EARN = 3000;
 
 module.exports = {
-    name: "travail",
+    name: "travailler",
     description: "Effectuez un travail pour gagner des vcoins",
     cooldown: 2000,
     options: [],
