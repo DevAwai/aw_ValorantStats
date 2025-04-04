@@ -2,7 +2,6 @@ const { SlashCommandBuilder } = require("discord.js");
 const { loadTrackedPlayers, saveTrackedPlayers } = require("../utils/trackedPlayers");
 const { handleError } = require("../utils/errorHandler");
 const { checkCooldown } = require("../utils/cooldownManager"); 
-const { cooldown } = require("./matches");
 
 module.exports = {
     name: "addsuivi",
@@ -19,15 +18,21 @@ module.exports = {
         }
     ],
     async execute(interaction) {
-
-        const cooldownResult = checkCooldown(interaction.user.id, this.name, this.cooldown);
-        if (cooldownResult !== true) {
-            return interaction.reply({ content: cooldownResult, ephemeral: true });
-        }
-
         try {
+            const cooldownResult = checkCooldown(interaction.user.id, this.name, this.cooldown);
+            if (cooldownResult !== true) {
+                return interaction.reply({ content: cooldownResult, ephemeral: true });
+            }
+
             const pseudo = interaction.options.getString("pseudo");
             const [name, tag] = pseudo.split("#");
+
+            if (!name || !tag) {
+                return interaction.reply({
+                    content: "❌ Format invalide! Utilisez **Pseudo#Tag**.",
+                    ephemeral: true
+                });
+            }
 
             const trackedPlayers = loadTrackedPlayers();
             const playerExists = trackedPlayers.some(p => p.name === name && p.tag === tag);
@@ -46,8 +51,9 @@ module.exports = {
                 content: `✅ **${name}#${tag}** a été ajouté à la liste des surveillés.`,
                 ephemeral: true
             });
+
         } catch (error) {
-            await handleError(interaction, error);
+            await handleError(interaction, error, "API");
         }
     }
 };

@@ -6,13 +6,13 @@ module.exports = {
     cooldown: 2000,
     options: [
         {
-            type: "USER",
+            type: "user",
             name: "utilisateur",
             description: "L'utilisateur à qui envoyer des vcoins",
             required: true
         },
         {
-            type: "INTEGER",
+            type: "integer",
             name: "montant",
             description: "Le montant de vcoins à envoyer",
             required: true
