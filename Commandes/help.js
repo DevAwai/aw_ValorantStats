@@ -26,7 +26,7 @@ module.exports = {
             });
 
             const helpEmbed = new EmbedBuilder()
-                .setColor("#ff4655") // Rouge Valorant
+                .setColor("#ff4655")
                 .setTitle("🎯 Valorant Stats – Aide & Commandes")
                 .setDescription("🚀 **Valorant Stats** te permet de suivre en temps réel tes performances et statistiques sur Valorant !\n\n🔻 **Voici la liste des commandes disponibles :**")
                 .addFields(
