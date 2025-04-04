@@ -12,12 +12,34 @@ async function handleError(interaction, error, type = "DEFAULT") {
     console.error(`[ERROR] ${type}:`, error);
 
     const errorType = ERROR_TYPES[type] || ERROR_TYPES.DEFAULT;
-    const errorMessage = error.stack?.slice(0, 1000) || error.message || "Erreur inconnue";
+    
+    if (error.code === 'MessageContentType') {
+        const correctedEmbed = new EmbedBuilder()
+            .setColor(Colors.Red)
+            .setTitle("❌ Erreur de format")
+            .setDescription("Le contenu du message n'était pas au bon format.")
+            .setFooter({ text: "Cette erreur a été automatiquement corrigée" });
+
+        try {
+            return await interaction.reply({ 
+                embeds: [correctedEmbed],
+                ephemeral: true 
+            });
+        } catch (fallbackError) {
+            console.error("Fallback error handling:", fallbackError);
+            return;
+        }
+    }
+
+    const errorMessage = (error.stack || error.message || "Erreur inconnue")
+        .toString()
+        .slice(0, 1000)
+        .replace(/token=.+?(?=\s|$)/g, 'token=[REDACTED]');
 
     const errorEmbed = new EmbedBuilder()
         .setTitle(`${errorType.emoji} ${type === "DEFAULT" ? "Erreur" : type}`)
         .setColor(errorType.color)
-        .setDescription(`\`\`\`js\n${errorMessage}\n\`\`\``)
+        .setDescription(`\`\`\`${errorMessage}\`\`\``)
         .setFooter({ text: "Besoin d'aide ? @Khalifouille" });
 
     try {
@@ -31,10 +53,9 @@ async function handleError(interaction, error, type = "DEFAULT") {
         }
     } catch (err) {
         console.error("Échec de l'envoi du message d'erreur :", err);
-        
         if (interaction.channel) {
             await interaction.channel.send({ 
-                content: `${errorType.emoji} Une erreur est survenue!`, 
+                content: `${errorType.emoji} Une erreur est survenue!`,
                 embeds: [errorEmbed] 
             });
         }

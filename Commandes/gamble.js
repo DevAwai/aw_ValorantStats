@@ -78,7 +78,7 @@ module.exports = {
             await interaction.reply({ embeds: [embed] });
 
         } catch (error) {
-            await handleError(interaction, error, "API");
+            await handleError(interaction, error);
         }
     },
 };
