@@ -33,7 +33,7 @@ function checkCooldown(userId, commandName, cooldownTime) {
     const remaining = cooldownTime - (now - lastUsed);
 
     if (remaining > 0) {
-        return `⏳ Disponible dans ${formatDuration(remaining)}`;
+        return remaining;
     }
 
     cooldowns[key] = now;
@@ -47,4 +47,19 @@ function checkCooldown(userId, commandName, cooldownTime) {
     return true;
 }
 
-module.exports = { checkCooldown };
+function setCooldown(userId, commandName, cooldownTime) {
+    const key = `${commandName}-${userId}`;
+    cooldowns[key] = Date.now();
+    
+    try {
+        fs.writeFileSync(cooldownPath, JSON.stringify(cooldowns, null, 2));
+    } catch (error) {
+        console.error("Erreur sauvegarde cooldowns.json:", error);
+    }
+}
+
+module.exports = { 
+    checkCooldown,
+    setCooldown,
+    formatDuration 
+};
