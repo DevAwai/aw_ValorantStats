@@ -1,4 +1,4 @@
-const { InteractionType, ActionRowBuilder, ButtonBuilder, ButtonStyle, EmbedBuilder } = require("discord.js");
+const { InteractionType, EmbedBuilder } = require("discord.js");
 const { updateUserBalance, getUserBalance } = require("../utils/creditsManager");
 const { checkCooldown, setCooldown, formatDuration } = require("../utils/cooldownManager");
 
@@ -20,14 +20,12 @@ module.exports = async (bot, interaction) => {
             if (!command.execute) {
                 return interaction.reply({ 
                     content: "❌ Cette commande ne peut pas être exécutée.", 
-                    ephemeral: false
+                    ephemeral: true 
                 });
             }
 
             await command.execute(interaction);
-        }
-        
-        else if (interaction.isButton()) {
+        } else if (interaction.isButton()) {
             if (interaction.customId.startsWith('work_')) {
                 const metier = interaction.customId.split('_')[1];
                 const config = METIERS[metier];
@@ -55,7 +53,11 @@ module.exports = async (bot, interaction) => {
                         { name: 'Prochain travail possible', value: `<t:${Math.floor((Date.now() + GLOBAL_WORK_COOLDOWN) / 1000)}:R>`, inline: true }
                     );
 
-                await interaction.reply({ embeds: [embed], ephemeral: true });
+                await interaction.reply({ 
+                    content: "", 
+                    embeds: [embed], 
+                    ephemeral: true 
+                });
             }
         }
     } catch (error) {
