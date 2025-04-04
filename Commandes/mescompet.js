@@ -3,22 +3,7 @@ const path = require('path');
 const { EmbedBuilder } = require('discord.js');
 const { checkCooldown } = require('../utils/cooldownManager');
 
-const cooldownPath = path.join(__dirname, '../data/timestamps.json');
 const competenciesPath = path.join(__dirname, '../data/competencies.json');
-const WORK_COOLDOWN = 2 * 60 * 60 * 1000; 
-const VOLER_COOLDOWN = 24 * 60 * 60 * 1000;
-
-function formatDuration(ms) {
-    const seconds = Math.floor(ms / 1000) % 60;
-    const minutes = Math.floor(ms / (1000 * 60)) % 60;
-    const hours = Math.floor(ms / (1000 * 60 * 60)) % 24;
-    const days = Math.floor(ms / (1000 * 60 * 60 * 24));
-
-    if (days > 0) return `${days}j ${hours}h`;
-    if (hours > 0) return `${hours}h ${minutes}m`;
-    if (minutes > 0) return `${minutes}m ${seconds}s`;
-    return `${seconds}s`;
-}
 
 module.exports = {
     name: "mescompet",
@@ -49,41 +34,28 @@ module.exports = {
                 return await interaction.reply({ embeds: [embed], ephemeral: true });
             }
 
-            let cooldowns = {};
-            try {
-                if (fs.existsSync(cooldownPath)) {
-                    cooldowns = JSON.parse(fs.readFileSync(cooldownPath, 'utf8'));
-                }
-            } catch (error) {
-                console.error("Erreur lecture timestamps.json:", error);
-            }
-
             const embed = new EmbedBuilder()
                 .setColor('#0099ff')
                 .setTitle('📜 Vos Compétences')
-                .setThumbnail(interaction.user.displayAvatarURL())
-                .setFooter({ text: `Demandé par ${interaction.user.username}` });
+                .setThumbnail(interaction.user.displayAvatarURL());
 
             for (const comp of competences) {
                 const compLower = comp.toLowerCase();
-                let value = '✅ Disponible';
-                let emoji = '🔹';
+                let value, emoji;
 
                 if (compLower === "voleur") {
                     emoji = '🕵️‍♂️';
-                    const lastUsed = cooldowns[userId] || 0;
-                    const remaining = VOLER_COOLDOWN - (Date.now() - lastUsed);
-                    value = remaining <= 0 ? '✅ Prêt à voler' : `⏳ Disponible dans ${formatDuration(remaining)}`;
+                    const status = checkCooldown(userId, 'voler', 24 * 60 * 60 * 1000);
+                    value = status === true ? '✅ Prêt à voler' : status;
                 } 
                 else if (compLower === "travailleur") {
                     emoji = '💼';
-                    const status = checkCooldown(userId, 'travail', WORK_COOLDOWN);
-                    if (typeof status === 'string') {
-                        const timeMatch = status.match(/(\d+\.?\d*)\s*(s|m|h|j)/);
-                        value = timeMatch ? `⏳ Disponible dans ${timeMatch[1]}${timeMatch[2]}` : status;
-                    } else {
-                        value = status === true ? '✅ Prêt à travailler' : '⏳ En cooldown';
-                    }
+                    const status = checkCooldown(userId, 'travail', 2 * 60 * 60 * 1000);
+                    value = status === true ? '✅ Prêt à travailler' : status;
+                } 
+                else {
+                    emoji = '🔹';
+                    value = '✅ Disponible';
                 }
 
                 embed.addFields({

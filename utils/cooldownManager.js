@@ -1,22 +1,49 @@
-const cooldowns = new Map();
+const fs = require('fs');
+const path = require('path');
+
+const cooldownPath = path.join(__dirname, './cooldowns.json');
+let cooldowns = {};
+
+try {
+    if (fs.existsSync(cooldownPath)) {
+        cooldowns = JSON.parse(fs.readFileSync(cooldownPath, 'utf8'));
+    }
+} catch (error) {
+    console.error("Erreur lecture cooldowns.json:", error);
+}
+
+function formatDuration(ms) {
+    const totalSeconds = Math.floor(ms / 1000);
+    const hours = Math.floor(totalSeconds / 3600);
+    const minutes = Math.floor((totalSeconds % 3600) / 60);
+    const seconds = totalSeconds % 60;
+
+    let parts = [];
+    if (hours > 0) parts.push(`${hours}h`);
+    if (minutes > 0) parts.push(`${minutes}m`);
+    if (seconds > 0 && hours === 0) parts.push(`${seconds}s`);
+
+    return parts.join(' ') || '0s';
+}
 
 function checkCooldown(userId, commandName, cooldownTime) {
-    if (!cooldowns.has(commandName)) {
-        cooldowns.set(commandName, new Map());
-    }
-
-    const userCooldowns = cooldowns.get(commandName);
+    const key = `${commandName}-${userId}`;
     const now = Date.now();
+    const lastUsed = cooldowns[key] || 0;
+    const remaining = cooldownTime - (now - lastUsed);
 
-    if (userCooldowns.has(userId)) {
-        const lastUsed = userCooldowns.get(userId);
-        if (now - lastUsed < cooldownTime) {
-            const remainingTime = ((cooldownTime - (now - lastUsed)) / 1000).toFixed(1);
-            return `⏳ Veuillez attendre ${remainingTime} secondes avant de réutiliser cette commande.`;
-        }
+    if (remaining > 0) {
+        return `⏳ Disponible dans ${formatDuration(remaining)}`;
     }
 
-    userCooldowns.set(userId, now);
+    cooldowns[key] = now;
+    
+    try {
+        fs.writeFileSync(cooldownPath, JSON.stringify(cooldowns, null, 2));
+    } catch (error) {
+        console.error("Erreur sauvegarde cooldowns.json:", error);
+    }
+
     return true;
 }
 
