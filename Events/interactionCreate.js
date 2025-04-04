@@ -73,80 +73,94 @@ module.exports = async (bot, interaction) => {
 
 async function startPecheurMiniGame(interaction, userId, config) {
     try {
-        const fishingEmbed = new EmbedBuilder()
-            .setColor('#0077FF')
-            .setTitle('🎣 Vous êtes en train de pêcher...')
-            .setDescription('Attendez que le poisson morde...');
-        
-        await interaction.update({ 
-            embeds: [fishingEmbed],
-            components: [],
-            ephemeral: true
+        const waitingEmbed = new EmbedBuilder()
+            .setColor('#1E90FF')
+            .setTitle('🎣 Pêche en cours...')
+            .setDescription('Vous lancez votre ligne et attendez qu\'un poisson morde...')
+            .setFooter({ text: 'Préparez-vous à réagir vite !' });
+
+        await interaction.reply({ 
+            embeds: [waitingEmbed],
+            ephemeral: true 
         });
 
-        const waitTime = Math.floor(Math.random() * 5) + 2; 
-        const timeToShowButton = Date.now() + waitTime * 1000; 
+        const biteTime = Math.floor(Math.random() * 5000) + 3000;
+        const biteTimestamp = Date.now() + biteTime;
 
         setTimeout(async () => {
-            const catchButton = new ButtonBuilder()
-                .setCustomId('catch_fish')
-                .setLabel('Attraper le poisson !')
-                .setStyle(ButtonStyle.Success);
+            const biteEmbed = new EmbedBuilder()
+                .setColor('#FF4500')
+                .setTitle('❗ UNE PRISE ! ❗')
+                .setDescription('VITE ! Cliquez pour attraper le poisson !');
 
-            const catchRow = new ActionRowBuilder().addComponents(catchButton);
+            const catchButton = new ActionRowBuilder().addComponents(
+                new ButtonBuilder()
+                    .setCustomId('catch_fish')
+                    .setLabel('ATTRAPER !')
+                    .setEmoji('🎣')
+                    .setStyle(ButtonStyle.Success)
+            );
 
-            const catchEmbed = new EmbedBuilder()
-                .setColor('#00FF00')
-                .setTitle('🎣 Le poisson mord !')
-                .setDescription('Cliquez vite pour attraper le poisson et gagner des vcoins !');
-
-            await interaction.followUp({
-                embeds: [catchEmbed],
-                components: [catchRow],
-                ephemeral: true
+            const biteMessage = await interaction.editReply({ 
+                embeds: [biteEmbed], 
+                components: [catchButton] 
             });
 
-            const filter = i => i.customId === 'catch_fish' && i.user.id === interaction.user.id;
-            const collector = interaction.channel.createMessageComponentCollector({
-                filter,
-                time: 5000 
+            const reactionCollector = biteMessage.createMessageComponentCollector({ 
+                filter: i => i.user.id === userId,
+                time: 2000 
             });
 
-            collector.on('collect', async (collected) => {
-                const timeTaken = Date.now() - timeToShowButton; 
+            reactionCollector.on('collect', async buttonInteraction => {
+                const reactionTime = Date.now() - biteTimestamp;
+                const success = reactionTime < 2000; 
 
-                if (timeTaken <= 5000) {
-                    const earnings = Math.floor(Math.random() * (config.gainMax - config.gainMin + 1)) + config.gainMin;
-                    await collected.update({
-                        content: `Félicitations ! Vous avez attrapé un poisson et gagné **${earnings} vcoins**! 🎣`,
-                        embeds: [],
-                        components: [],
-                        ephemeral: true
+                if (success) {
+                    const baseEarnings = Math.floor(Math.random() * (config.gainMax - config.gainMin + 1)) + config.gainMin;
+                    const speedBonus = Math.floor((2000 - reactionTime) / 2000 * baseEarnings * 0.5);
+                    const totalEarnings = baseEarnings + speedBonus;
+
+                    updateUserBalance(userId, totalEarnings);
+                    setCooldown(userId, 'global_work', GLOBAL_WORK_COOLDOWN);
+
+                    const successEmbed = new EmbedBuilder()
+                        .setColor('#4CAF50')
+                        .setTitle('🎣 PRISE RÉUSSIE !')
+                        .setDescription(`Vous avez attrapé un poisson et gagné **${totalEarnings} vcoins** !\n(Bonus de rapidité: +${speedBonus})`)
+                        .addFields(
+                            { name: 'Nouveau solde', value: `${getUserBalance(userId)} vcoins`, inline: true },
+                            { name: 'Prochain travail possible', value: `<t:${Math.floor((Date.now() + GLOBAL_WORK_COOLDOWN) / 1000)}:R>`, inline: true }
+                        );
+
+                    await buttonInteraction.update({ 
+                        embeds: [successEmbed],
+                        components: [] 
                     });
-                    updateUserBalance(userId, earnings);
                 } else {
-                    await collected.update({
-                        content: `Désolé, vous avez raté le poisson! Essayez encore la prochaine fois.`,
+                    await buttonInteraction.update({ 
+                        content: 'Trop lent ! Le poisson s\'est échappé...',
                         embeds: [],
-                        components: [],
-                        ephemeral: true
+                        components: [] 
                     });
                 }
             });
 
-            collector.on('end', async () => {
-                if (!collector.collected.size) {
-                    await interaction.followUp({
-                        content: `Le temps est écoulé! Vous n'avez pas attrapé de poisson cette fois.`,
-                        ephemeral: true
+            reactionCollector.on('end', async () => {
+                if (!reactionCollector.collected.size) {
+                    await interaction.editReply({ 
+                        content: 'Le poisson est parti... Vous n\'avez pas réagi à temps !',
+                        embeds: [],
+                        components: [] 
                     });
                 }
             });
-        }, waitTime * 1000); 
+
+        }, biteTime);
+
     } catch (error) {
-        console.error("Erreur lors du mini-jeu de pêche:", error);
+        console.error("Erreur dans le mini-jeu de pêche:", error);
         await interaction.followUp({
-            content: "❌ Une erreur est survenue pendant le mini-jeu.",
+            content: "❌ Une erreur est survenue pendant la pêche.",
             ephemeral: true
         });
     }
