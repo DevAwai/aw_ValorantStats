@@ -83,6 +83,8 @@ async function startFishingMiniGame(interaction, userId, config) {
         });
 
         const waitTime = Math.floor(Math.random() * 5) + 2; 
+        const timeToShowButton = Date.now() + waitTime * 1000; 
+
         setTimeout(async () => {
             const catchButton = new ButtonBuilder()
                 .setCustomId('catch_fish')
@@ -109,8 +111,9 @@ async function startFishingMiniGame(interaction, userId, config) {
             });
 
             collector.on('collect', async (collected) => {
-                const timeTaken = Date.now() - interaction.createdTimestamp;
-                if (timeTaken <= waitTime * 1000) {
+                const timeTaken = Date.now() - timeToShowButton; 
+
+                if (timeTaken <= 5000) {
                     const earnings = Math.floor(Math.random() * (config.gainMax - config.gainMin + 1)) + config.gainMin;
                     await collected.update({
                         content: `Félicitations ! Vous avez attrapé un poisson et gagné **${earnings} vcoins**! 🎣`,
@@ -137,7 +140,7 @@ async function startFishingMiniGame(interaction, userId, config) {
                     });
                 }
             });
-        }, waitTime * 1000);
+        }, waitTime * 1000); 
     } catch (error) {
         console.error("Erreur lors du mini-jeu de pêche:", error);
         await interaction.followUp({
