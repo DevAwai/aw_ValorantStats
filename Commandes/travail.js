@@ -50,6 +50,6 @@ module.exports = {
             )
             .setFooter({ text: 'Revenez dans 2 heures pour travailler à nouveau' });
 
-        await interaction.reply({ embeds: [embed] });
+        await interaction.reply({ embeds: [embed], ephemeral: true });
     }
 };

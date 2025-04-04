@@ -1,8 +1,10 @@
 const fs = require('fs');
 const path = require('path');
+const cooldownManager = require('../utils/cooldownManager');
 
 const cooldownPath = path.join(__dirname, '../data/timestamps.json');
-const COOLDOWN_TIME = 24 * 60 * 60 * 1000;
+const WORK_COOLDOWN = 2 * 60 * 60 * 1000; 
+const COOLDOWN_TIME = 24 * 60 * 60 * 1000; 
 
 module.exports = {
     name: "mescompet",
@@ -36,11 +38,12 @@ module.exports = {
 
         let response = "**📜 Vos compétences :**\n";
         competences.forEach(comp => {
-            if (comp === "Voleur") {
+            const compLower = comp.toLowerCase();
+            if (compLower === "voleur") {
                 response += `- 🕵️‍♂️ **Voleur** : ${isVolerReady ? "✅ Utilisable" : "⏳ En chargement"}\n`;
-            } else if (comp === "Travailleur") {
-                const travailCooldown = cooldownManager.checkCooldown(userId, 'travail', WORK_COOLDOWN);
-                response += `- 💼 **Travailleur** : ${travailCooldown === true ? "✅ Prêt à travailler" : "⏳ En repos"}\n`;
+            } else if (compLower === "travailleur") {
+                const travailReady = cooldownManager.checkCooldown(userId, 'travail', WORK_COOLDOWN) === true;
+                response += `- 💼 **Travailleur** : ${travailReady ? "✅ Prêt à travailler" : "⏳ En repos"}\n`;
             } else {
                 response += `- ${comp} ✅\n`;
             }

@@ -12,6 +12,11 @@ function saveCompetencies() {
     fs.writeFileSync('./data/competencies.json', JSON.stringify(playerCompetencies), 'utf8');
 }
 
+const AVAILABLE_COMPETENCIES = {
+    "Voleur": { price: 10000 },
+    "Travailleur": { price: 8000 }
+};
+
 module.exports = {
     name: "achetercompet",
     description: "Acheter une compétence",
@@ -22,41 +27,61 @@ module.exports = {
             name: "competence",
             description: "La compétence à acheter",
             required: true,
-            choices: [
-                { name: "Voleur", value: "Voleur" },
-                { name: "Travailleur", value: "Travailleur" }
-            ]
+            choices: Object.keys(AVAILABLE_COMPETENCIES).map(comp => ({
+                name: comp,
+                value: comp.toLowerCase()
+            }))
         }
     ],
     
     async execute(interaction) {
         const userId = interaction.user.id;
-        const competence = interaction.options.getString("competence");
+        const competenceInput = interaction.options.getString("competence").toLowerCase();
+        
+        const competenceEntry = Object.entries(AVAILABLE_COMPETENCIES).find(
+            ([name]) => name.toLowerCase() === competenceInput
+        );
+        
+        if (!competenceEntry) {
+            return interaction.reply({ 
+                content: "❌ Cette compétence n'existe pas!", 
+                ephemeral: true 
+            });
+        }
+        
+        const [competenceName, competenceData] = competenceEntry;
+        const competPrice = competenceData.price;
 
         if (!playerCompetencies[userId]) {
             playerCompetencies[userId] = [];
         }
 
-        if (playerCompetencies[userId].includes(competence)) {
-            return interaction.reply({ content: "Vous possédez déjà cette compétence!", ephemeral: true });
+        const alreadyOwned = playerCompetencies[userId].some(
+            comp => comp.toLowerCase() === competenceName.toLowerCase()
+        );
+        
+        if (alreadyOwned) {
+            return interaction.reply({ 
+                content: "❌ Vous possédez déjà cette compétence!", 
+                ephemeral: true 
+            });
         }
 
         const userBalance = getUserBalance(userId);
-        const competPrice = 10000;
 
         if (userBalance < competPrice) {
             return interaction.reply({ 
-                content: `Vous n'avez pas assez de vcoins! Il vous faut ${competPrice} vcoins.`, 
+                content: `❌ Vous n'avez pas assez de vcoins! Il vous faut ${competPrice} vcoins.`, 
                 ephemeral: true 
             });
         }
 
         updateUserBalance(userId, -competPrice);
-        playerCompetencies[userId].push(competence);
+        playerCompetencies[userId].push(competenceName);
         saveCompetencies();
 
         await interaction.reply({ 
-            content: `Achat réussi! Vous avez acquis la compétence: **${competence}** pour **${competPrice} vcoins**.`,
+            content: `✅ Achat réussi! Vous avez acquis la compétence: **${competenceName}** pour **${competPrice} vcoins**.`,
             ephemeral: true
         });
     }
