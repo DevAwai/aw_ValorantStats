@@ -9,7 +9,6 @@ module.exports = {
     cooldown: 2000,
     options: [],
     async execute(interaction) {
-
         const cooldownResult = checkCooldown(interaction.user.id, this.name, this.cooldown);
         if (cooldownResult !== true) {
             return interaction.reply({ content: cooldownResult, ephemeral: true });
@@ -30,7 +29,7 @@ module.exports = {
 
             await interaction.reply({ embeds: [embed], ephemeral: false });
         } catch (error) {
-            await handleError(interaction, error);
+            await handleError(interaction, error, "API");
         }
     }
 };
