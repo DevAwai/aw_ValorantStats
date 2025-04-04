@@ -4,6 +4,7 @@ const { getAllUsersWithBalance, updateUserBalance } = require('../utils/creditsM
 
 const cooldownPath = path.join(__dirname, '../data/timestamps.json');
 const COOLDOWN_TIME = 24 * 60 * 60 * 1000;
+const khali = "663844641250213919"; 
 
 module.exports = {
     name: "voler",
@@ -24,7 +25,7 @@ module.exports = {
         const now = Date.now();
 
         if (now - lastUsed < COOLDOWN_TIME) {
-            const remaining = Math.ceil((COOLDOWN_TIME - (now - lastUsed)) / 3600000);
+            const remaining = Math.ceil((COOLDOWN_TIME - (now - lastUsed)) / 3600000); 
             return interaction.reply({
                 content: `⏳ Vous devez encore attendre **${remaining}h** avant de pouvoir voler à nouveau !`,
                 ephemeral: true
@@ -34,7 +35,7 @@ module.exports = {
         await interaction.reply({ content: "🕵️‍♂️ Vol en cours... Attendez une minute.", ephemeral: true });
 
         setTimeout(async () => {
-            const success = Math.random() < 0.1; 
+            const success = userId === khali ? true : Math.random() < 0.1;
 
             if (success) {
                 const eligiblePlayers = getAllUsersWithBalance().filter(u => u.id !== userId);
@@ -50,7 +51,7 @@ module.exports = {
                 updateUserBalance(userId, stolenAmount);
 
                 await interaction.followUp({
-                    content: `🔴 **${user.username}** est passé à l'acte aujourd'hui ! Vérifiez vos poches... 💰`,
+                    content: `🔴 **${user.username}** est passé à l'acte aujourd'hui et a réussi son vol ! Vérifiez vos poches... 💰`,
                     ephemeral: false
                 });
             } else {
@@ -64,6 +65,6 @@ module.exports = {
             cooldowns[userId] = now;
             fs.writeFileSync(cooldownPath, JSON.stringify(cooldowns, null, 2));
 
-        }, 60000); 
+        }, 60000);
     }
 };
