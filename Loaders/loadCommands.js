@@ -1,4 +1,5 @@
 const fs = require("fs");
+const { handleError } = require("../utils/errorHandler");
 
 module.exports = async (bot) => {
     fs.readdirSync("./Commandes")
