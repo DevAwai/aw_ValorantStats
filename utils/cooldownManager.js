@@ -1,7 +1,7 @@
 const fs = require('fs');
 const path = require('path');
 
-const cooldownPath = path.join(__dirname, './cooldowns.json');
+const cooldownPath = path.join(__dirname, '../data/cooldowns.json');
 let cooldowns = {};
 
 try {

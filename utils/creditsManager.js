@@ -1,7 +1,7 @@
 const fs = require('fs');
 const path = require('path');
 
-const dataPath = path.join(__dirname, 'credits.json');
+const dataPath = path.join(__dirname, '../data/credits.json');
 const DEFAULT_BALANCE = 1000;
 
 function loadCredits() {
