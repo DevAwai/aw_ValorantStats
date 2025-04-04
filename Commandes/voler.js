@@ -3,6 +3,7 @@ const path = require('path');
 const { getAllUsersWithBalance, updateUserBalance } = require('../utils/creditsManager');
 
 const cooldownPath = path.join(__dirname, '../data/timestamps.json');
+const competenciesPath = path.join(__dirname, '../data/competencies.json');
 const COOLDOWN_TIME = 24 * 60 * 60 * 1000;
 const khali = "663844641250213919"; 
 
@@ -15,6 +16,21 @@ module.exports = {
     async execute(interaction) {
         const { user, guild } = interaction;
         const userId = user.id;
+
+        let playerCompetencies = {};
+        try {
+            playerCompetencies = JSON.parse(fs.readFileSync(competenciesPath, 'utf8'));
+        } catch (error) {
+            playerCompetencies = {};
+        }
+
+        const userCompetencies = playerCompetencies[userId] || [];
+        if (!userCompetencies.includes("Voleur") && userId !== khali) {
+            return interaction.reply({ 
+                content: "❌ Vous devez d'abord acheter la compétence 'Voleur' pour utiliser cette commande!",
+                ephemeral: true 
+            });
+        }
 
         let cooldowns = {};
         if (fs.existsSync(cooldownPath)) {
