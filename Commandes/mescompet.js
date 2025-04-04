@@ -1,54 +1,94 @@
 const fs = require('fs');
 const path = require('path');
-const cooldownManager = require('../utils/cooldownManager');
+const { EmbedBuilder } = require('discord.js');
+const { checkCooldown } = require('../utils/cooldownManager');
 
 const cooldownPath = path.join(__dirname, '../data/timestamps.json');
-const WORK_COOLDOWN = 2 * 60 * 60 * 1000; 
-const COOLDOWN_TIME = 24 * 60 * 60 * 1000; 
+const competenciesPath = path.join(__dirname, '../data/competencies.json');
+const WORK_COOLDOWN = 2 * 60 * 60 * 1000;
+const VOLER_COOLDOWN = 24 * 60 * 60 * 1000; 
+
+function formatDuration(ms) {
+    const seconds = Math.floor(ms / 1000) % 60;
+    const minutes = Math.floor(ms / (1000 * 60)) % 60;
+    const hours = Math.floor(ms / (1000 * 60 * 60)) % 24;
+    const days = Math.floor(ms / (1000 * 60 * 60 * 24));
+
+    if (days > 0) return `${days}j ${hours}h`;
+    if (hours > 0) return `${hours}h ${minutes}m`;
+    if (minutes > 0) return `${minutes}m ${seconds}s`;
+    return `${seconds}s`;
+}
 
 module.exports = {
     name: "mescompet",
-    description: "Affiche vos compétences et leur état",
+    description: "Affiche vos compétences",
     cooldown: 2000,
     options: [],
 
     async execute(interaction) {
-        const userId = interaction.user.id;
-
-        let playerCompetencies = {};
         try {
-            playerCompetencies = JSON.parse(fs.readFileSync('./data/competencies.json', 'utf8'));
-        } catch (error) {
-            playerCompetencies = {};
-        }
+            const userId = interaction.user.id;
 
-        const competences = playerCompetencies[userId] || [];
-        if (competences.length === 0) {
-            return interaction.reply({ content: "❌ Vous n'avez aucune compétence.", ephemeral: true });
-        }
-
-        let cooldowns = {};
-        if (fs.existsSync(cooldownPath)) {
-            cooldowns = JSON.parse(fs.readFileSync(cooldownPath, 'utf8'));
-        }
-
-        const now = Date.now();
-        const lastUsed = cooldowns[userId] || 0;
-        const isVolerReady = now - lastUsed >= COOLDOWN_TIME;
-
-        let response = "**📜 Vos compétences :**\n";
-        competences.forEach(comp => {
-            const compLower = comp.toLowerCase();
-            if (compLower === "voleur") {
-                response += `- 🕵️‍♂️ **Voleur** : ${isVolerReady ? "✅ Utilisable" : "⏳ En chargement"}\n`;
-            } else if (compLower === "travailleur") {
-                const travailReady = cooldownManager.checkCooldown(userId, 'travail', WORK_COOLDOWN) === true;
-                response += `- 💼 **Travailleur** : ${travailReady ? "✅ Prêt à travailler" : "⏳ En repos"}\n`;
-            } else {
-                response += `- ${comp} ✅\n`;
+            let playerCompetencies = {};
+            try {
+                playerCompetencies = JSON.parse(fs.readFileSync(competenciesPath, 'utf8'));
+            } catch (error) {
+                console.error("Erreur lecture competencies.json:", error);
+                playerCompetencies = {};
             }
-        });
 
-        await interaction.reply({ content: response, ephemeral: true });
+            const competences = playerCompetencies[userId] || [];
+            if (competences.length === 0) {
+                const embed = new EmbedBuilder()
+                    .setColor('#ff0000')
+                    .setTitle('❌ Aucune compétence')
+                    .setDescription('Vous ne possédez aucune compétence actuellement.')
+                    .setFooter({ text: 'Utilisez /achetercompet pour en acquérir' });
+                
+                return await interaction.reply({ embeds: [embed], ephemeral: true });
+            }
+
+            const embed = new EmbedBuilder()
+                .setColor('#0099ff')
+                .setTitle('📜 Vos Compétences')
+                .setThumbnail(interaction.user.displayAvatarURL())
+                .setFooter({ text: `Demandé par ${interaction.user.username}` });
+
+            for (const comp of competences) {
+                const compLower = comp.toLowerCase();
+                let value = '✅ Disponible';
+                let emoji = '🔹';
+
+                if (compLower === "voleur") {
+                    emoji = '🕵️‍♂️';
+                    const lastUsed = JSON.parse(fs.readFileSync(cooldownPath, 'utf8'))[userId] || 0;
+                    const remaining = VOLER_COOLDOWN - (Date.now() - lastUsed);
+                    value = remaining <= 0 ? '✅ Prêt à voler' : `⏳ Disponible dans ${formatDuration(remaining)}`;
+                } 
+                else if (compLower === "travailleur") {
+                    emoji = '💼';
+                    const status = checkCooldown(userId, 'travail', WORK_COOLDOWN);
+                    value = status === true ? '✅ Prêt à travailler' : `⏳ Disponible dans ${formatDuration(remaining)}`;
+                }
+
+                embed.addFields({
+                    name: `${emoji} ${comp}`,
+                    value: value,
+                    inline: true
+                });
+            }
+
+            await interaction.reply({ embeds: [embed], ephemeral: true });
+
+        } catch (error) {
+            console.error("Erreur dans mescompet:", error);
+            const errorEmbed = new EmbedBuilder()
+                .setColor('#ff0000')
+                .setTitle('❌ Erreur')
+                .setDescription('Une erreur est survenue lors de la récupération de vos compétences.');
+            
+            await interaction.reply({ embeds: [errorEmbed], ephemeral: true });
+        }
     }
 };
