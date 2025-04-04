@@ -23,7 +23,8 @@ module.exports = {
             description: "La compétence à acheter",
             required: true,
             choices: [
-                { name: "Arabe", value: "Arabe" }
+                { name: "Voleur", value: "Voleur" },
+                { name: "Travailleur", value: "Travailleur" }
             ]
         }
     ],

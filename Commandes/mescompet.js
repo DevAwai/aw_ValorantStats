@@ -38,6 +38,9 @@ module.exports = {
         competences.forEach(comp => {
             if (comp === "Voleur") {
                 response += `- 🕵️‍♂️ **Voleur** : ${isVolerReady ? "✅ Utilisable" : "⏳ En chargement"}\n`;
+            } else if (comp === "Travailleur") {
+                const travailCooldown = cooldownManager.checkCooldown(userId, 'travail', WORK_COOLDOWN);
+                response += `- 💼 **Travailleur** : ${travailCooldown === true ? "✅ Prêt à travailler" : "⏳ En repos"}\n`;
             } else {
                 response += `- ${comp} ✅\n`;
             }
