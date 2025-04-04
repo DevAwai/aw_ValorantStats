@@ -50,7 +50,7 @@ module.exports = {
                 } 
                 else if (compLower === "travailleur") {
                     emoji = '💼';
-                    const status = checkCooldown(userId, 'travail', 2 * 60 * 60 * 1000);
+                    const status = checkCooldown(userId, 'travailler', 2 * 60 * 60 * 1000);
                     value = status === true ? '✅ Prêt à travailler' : status;
                 } 
                 else {
