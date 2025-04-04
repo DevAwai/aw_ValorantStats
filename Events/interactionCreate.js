@@ -70,6 +70,7 @@ module.exports = async (bot, interaction) => {
         }
     }
 };
+
 async function startPecheurMiniGame(interaction, userId, config) {
     try {
         const fishingEmbed = new EmbedBuilder()
@@ -153,15 +154,15 @@ async function startPecheurMiniGame(interaction, userId, config) {
 
 async function startBucheronMiniGame(interaction, userId, config) {
     try {
-        const trees = 10; 
-        let remainingTrees = trees;
+        let remainingTrees = 10;
+        const treesArray = Array(remainingTrees).fill('🪵'); 
 
         const weaponEmbed = new EmbedBuilder()
             .setColor('#8B4513')
             .setTitle('🪓 Vous êtes en train de couper des arbres...')
             .setDescription('Cliquez sur l\'emoji 🪓 pour couper un arbre.')
             .addFields(
-                { name: 'Arbres restants', value: `${remainingTrees} arbres à couper`, inline: true }
+                { name: 'Arbres restants', value: treesArray.join(' '), inline: true } 
             );
         
         const row = new ActionRowBuilder().addComponents(
@@ -180,7 +181,7 @@ async function startBucheronMiniGame(interaction, userId, config) {
         const filter = i => i.customId === 'cut_tree' && i.user.id === interaction.user.id;
         const collector = interaction.channel.createMessageComponentCollector({
             filter,
-            time: 60000
+            time: 60000 
         });
 
         collector.on('collect', async (collected) => {
@@ -197,6 +198,8 @@ async function startBucheronMiniGame(interaction, userId, config) {
                 });
                 collector.stop();
             } else {
+                treesArray.pop();
+
                 await collected.update({
                     content: `Arbre coupé ! Il reste **${remainingTrees}** arbres à couper.`,
                     embeds: [],
@@ -209,11 +212,12 @@ async function startBucheronMiniGame(interaction, userId, config) {
                     .setTitle('🪓 Vous êtes en train de couper des arbres...')
                     .setDescription('Cliquez sur l\'emoji 🪓 pour couper un arbre.')
                     .addFields(
-                        { name: 'Arbres restants', value: `${remainingTrees} arbres à couper`, inline: true }
+                        { name: 'Arbres restants', value: treesArray.join(' '), inline: true } 
                     );
 
                 await interaction.editReply({
-                    embeds: [updatedEmbed]
+                    embeds: [updatedEmbed],
+                    components: [row] 
                 });
             }
         });
