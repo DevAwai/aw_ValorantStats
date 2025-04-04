@@ -1,7 +1,6 @@
 const fs = require('fs');
 const path = require('path');
 const { EmbedBuilder } = require('discord.js');
-const { checkCooldown } = require('../utils/cooldownManager');
 
 const competenciesPath = path.join(__dirname, '../data/competencies.json');
 
@@ -24,48 +23,42 @@ module.exports = {
             }
 
             const competences = playerCompetencies[userId] || [];
-            if (competences.length === 0) {
-                const embed = new EmbedBuilder()
-                    .setColor('#ff0000')
-                    .setTitle('❌ Aucune compétence')
-                    .setDescription('Vous ne possédez aucune compétence actuellement.')
-                    .setFooter({ text: 'Utilisez /achetercompet pour en acquérir' });
-                
-                return await interaction.reply({ embeds: [embed], ephemeral: true });
-            }
-
+            
             const embed = new EmbedBuilder()
                 .setColor('#0099ff')
                 .setTitle('📜 Vos Compétences')
-                .setThumbnail(interaction.user.displayAvatarURL());
+                .setThumbnail(interaction.user.displayAvatarURL())
+                .setTimestamp()
+                .setFooter({ text: `Demandé par ${interaction.user.username}` });
 
-            for (const comp of competences) {
-                const compLower = comp.toLowerCase();
-                let value, emoji;
+            if (competences.length === 0) {
+                embed.setDescription('❌ Vous ne possédez aucune compétence actuellement.')
+                   .setFooter({ text: 'Utilisez /achetercompet pour en acquérir' });
+            } 
+            else {
+                const emojis = {
+                    voleur: '🕵️‍♂️',
+                    travailleur: '💼',
+                    default: '🔹'
+                };
 
-                if (compLower === "voleur") {
-                    emoji = '🕵️‍♂️';
-                    const status = checkCooldown(userId, 'voler', 24 * 60 * 60 * 1000);
-                    value = status === true ? '✅ Prêt à voler' : status;
-                } 
-                else if (compLower === "travailleur") {
-                    emoji = '💼';
-                    const status = checkCooldown(userId, 'travailler', 2 * 60 * 60 * 1000);
-                    value = status === true ? '✅ Prêt à travailler' : status;
-                } 
-                else {
-                    emoji = '🔹';
-                    value = '✅ Disponible';
-                }
-
-                embed.addFields({
-                    name: `${emoji} ${comp}`,
-                    value: value,
-                    inline: true
-                });
+                embed.setDescription('Voici la liste de vos compétences :')
+                     .addFields(
+                         competences.map(comp => {
+                             const compLower = comp.toLowerCase();
+                             return {
+                                 name: `${emojis[compLower] || emojis.default} ${comp}`,
+                                 value: '\u200B',
+                                 inline: false
+                             };
+                         })
+                     );
             }
 
-            await interaction.reply({ embeds: [embed], ephemeral: true });
+            await interaction.reply({ 
+                embeds: [embed], 
+                flags: 1 << 6
+            });
 
         } catch (error) {
             console.error("Erreur dans mescompet:", error);
@@ -74,7 +67,10 @@ module.exports = {
                 .setTitle('❌ Erreur')
                 .setDescription('Une erreur est survenue lors de la récupération de vos compétences.');
             
-            await interaction.reply({ embeds: [errorEmbed], ephemeral: true });
+            await interaction.reply({ 
+                embeds: [errorEmbed], 
+                flags: 1 << 6 
+            });
         }
     }
 };

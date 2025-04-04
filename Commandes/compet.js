@@ -13,7 +13,7 @@ module.exports = {
             .setDescription('Voici les compétences que vous pouvez acheter:')
             .addFields(
                 { name: 'Voleur', value: '**Prix:** 10,000 vcoins(1 chance sur 10 de voler entre 1 - 5000 vcoins)' },
-                { name: 'Travailleur', value: '**Prix:** 8,000 vcoins(Travail sale noir)' }
+                { name: 'Travailleur', value: 'Travail sale noir' }
             )
             .setTimestamp();
 
