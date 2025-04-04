@@ -1,5 +1,9 @@
-const { getUserBalance, updateUserBalance, getAllUsersWithBalance } = require('../utils/creditsManager');
 const fs = require('fs');
+const path = require('path');
+const { getAllUsersWithBalance, updateUserBalance } = require('../utils/creditsManager');
+
+const cooldownPath = path.join(__dirname, '../data/timestamps.json');
+const COOLDOWN_TIME = 24 * 60 * 60 * 1000;
 
 module.exports = {
     name: "voler",
@@ -11,31 +15,36 @@ module.exports = {
         const { user, guild } = interaction;
         const userId = user.id;
 
-        let playerCompetencies = {};
-        try {
-            playerCompetencies = JSON.parse(fs.readFileSync('./data/competencies.json', 'utf8'));
-        } catch (error) {
-            playerCompetencies = {};
+        let cooldowns = {};
+        if (fs.existsSync(cooldownPath)) {
+            cooldowns = JSON.parse(fs.readFileSync(cooldownPath, 'utf8'));
         }
 
-        if (!playerCompetencies[userId] || !playerCompetencies[userId].includes("Voleur")) {
-            return interaction.reply({ content: "Vous n'avez pas la compétence **Voleur** pour effectuer cette action!", ephemeral: true });
+        const lastUsed = cooldowns[userId] || 0;
+        const now = Date.now();
+
+        if (now - lastUsed < COOLDOWN_TIME) {
+            const remaining = Math.ceil((COOLDOWN_TIME - (now - lastUsed)) / 3600000);
+            return interaction.reply({
+                content: `⏳ Vous devez encore attendre **${remaining}h** avant de pouvoir voler à nouveau !`,
+                ephemeral: true
+            });
         }
 
         await interaction.reply({ content: "🕵️‍♂️ Vol en cours... Attendez une minute.", ephemeral: true });
 
         setTimeout(async () => {
-            const success = Math.random() < 0.1;
+            const success = Math.random() < 0.1; 
 
             if (success) {
-                const eligiblePlayers = getAllUsersWithBalance(guild.id).filter(u => u.id !== userId && u.balance > 0);
-                
+                const eligiblePlayers = getAllUsersWithBalance().filter(u => u.id !== userId);
+
                 if (eligiblePlayers.length === 0) {
                     return interaction.followUp({ content: "💰 Il n'y avait personne à voler... Essayez plus tard.", ephemeral: true });
                 }
 
                 const victim = eligiblePlayers[Math.floor(Math.random() * eligiblePlayers.length)];
-                const stolenAmount = Math.floor(Math.random() * 5000) + 1; 
+                const stolenAmount = Math.floor(Math.random() * 5000) + 1;
 
                 updateUserBalance(victim.id, -stolenAmount);
                 updateUserBalance(userId, stolenAmount);
@@ -46,12 +55,15 @@ module.exports = {
                 });
             } else {
                 updateUserBalance(userId, -10000);
-
                 await interaction.followUp({
                     content: `🚨 **${user.username}** vient d'être pris la main dans le sac et a payé une amende de **10 000 vcoins** !`,
                     ephemeral: false
                 });
             }
-        }, 60000);
+
+            cooldowns[userId] = now;
+            fs.writeFileSync(cooldownPath, JSON.stringify(cooldowns, null, 2));
+
+        }, 60000); 
     }
 };

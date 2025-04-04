@@ -1,13 +1,16 @@
 const fs = require('fs');
+const path = require('path');
+
+const cooldownPath = path.join(__dirname, '../data/timestamps.json');
+const COOLDOWN_TIME = 24 * 60 * 60 * 1000;
 
 module.exports = {
     name: "mescompet",
-    description: "Affiche vos compétences acquises",
+    description: "Affiche vos compétences et leur état",
     cooldown: 2000,
     options: [],
 
     async execute(interaction) {
-        const { EmbedBuilder } = require('discord.js');
         const userId = interaction.user.id;
 
         let playerCompetencies = {};
@@ -17,21 +20,29 @@ module.exports = {
             playerCompetencies = {};
         }
 
-        const userCompetencies = playerCompetencies[userId] || [];
-
-        const embed = new EmbedBuilder()
-            .setColor('#0099ff')
-            .setTitle('Mes Compétences')
-            .setDescription(userCompetencies.length > 0 
-                ? 'Voici vos compétences acquises :'
-                : 'Vous n\'avez pas encore acquis de compétences.');
-
-        if (userCompetencies.length > 0) {
-            userCompetencies.forEach(compet => {
-                embed.addFields({ name: compet, value: 'Maîtrisé ✅' });
-            });
+        const competences = playerCompetencies[userId] || [];
+        if (competences.length === 0) {
+            return interaction.reply({ content: "❌ Vous n'avez aucune compétence.", ephemeral: true });
         }
 
-        await interaction.reply({ embeds: [embed], ephemeral: true });
+        let cooldowns = {};
+        if (fs.existsSync(cooldownPath)) {
+            cooldowns = JSON.parse(fs.readFileSync(cooldownPath, 'utf8'));
+        }
+
+        const now = Date.now();
+        const lastUsed = cooldowns[userId] || 0;
+        const isVolerReady = now - lastUsed >= COOLDOWN_TIME;
+
+        let response = "**📜 Vos compétences :**\n";
+        competences.forEach(comp => {
+            if (comp === "Voleur") {
+                response += `- 🕵️‍♂️ **Voleur** : ${isVolerReady ? "✅ Utilisable" : "⏳ En chargement"}\n`;
+            } else {
+                response += `- ${comp} ✅\n`;
+            }
+        });
+
+        await interaction.reply({ content: response, ephemeral: true });
     }
 };
