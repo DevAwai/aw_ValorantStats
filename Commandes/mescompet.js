@@ -5,8 +5,8 @@ const { checkCooldown } = require('../utils/cooldownManager');
 
 const cooldownPath = path.join(__dirname, '../data/timestamps.json');
 const competenciesPath = path.join(__dirname, '../data/competencies.json');
-const WORK_COOLDOWN = 2 * 60 * 60 * 1000;
-const VOLER_COOLDOWN = 24 * 60 * 60 * 1000; 
+const WORK_COOLDOWN = 2 * 60 * 60 * 1000; 
+const VOLER_COOLDOWN = 24 * 60 * 60 * 1000;
 
 function formatDuration(ms) {
     const seconds = Math.floor(ms / 1000) % 60;
@@ -49,6 +49,15 @@ module.exports = {
                 return await interaction.reply({ embeds: [embed], ephemeral: true });
             }
 
+            let cooldowns = {};
+            try {
+                if (fs.existsSync(cooldownPath)) {
+                    cooldowns = JSON.parse(fs.readFileSync(cooldownPath, 'utf8'));
+                }
+            } catch (error) {
+                console.error("Erreur lecture timestamps.json:", error);
+            }
+
             const embed = new EmbedBuilder()
                 .setColor('#0099ff')
                 .setTitle('📜 Vos Compétences')
@@ -62,14 +71,19 @@ module.exports = {
 
                 if (compLower === "voleur") {
                     emoji = '🕵️‍♂️';
-                    const lastUsed = JSON.parse(fs.readFileSync(cooldownPath, 'utf8'))[userId] || 0;
+                    const lastUsed = cooldowns[userId] || 0;
                     const remaining = VOLER_COOLDOWN - (Date.now() - lastUsed);
                     value = remaining <= 0 ? '✅ Prêt à voler' : `⏳ Disponible dans ${formatDuration(remaining)}`;
                 } 
                 else if (compLower === "travailleur") {
                     emoji = '💼';
                     const status = checkCooldown(userId, 'travail', WORK_COOLDOWN);
-                    value = status === true ? '✅ Prêt à travailler' : `⏳ Disponible dans ${formatDuration(remaining)}`;
+                    if (typeof status === 'string') {
+                        const timeMatch = status.match(/(\d+\.?\d*)\s*(s|m|h|j)/);
+                        value = timeMatch ? `⏳ Disponible dans ${timeMatch[1]}${timeMatch[2]}` : status;
+                    } else {
+                        value = status === true ? '✅ Prêt à travailler' : '⏳ En cooldown';
+                    }
                 }
 
                 embed.addFields({
