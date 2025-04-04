@@ -1,4 +1,5 @@
-const { EmbedBuilder, Colors } = require("discord.js");
+const { EmbedBuilder } = require("discord.js");
+const { Colors } = require('discord.js');
 
 const ERROR_TYPES = {
     API: { color: Colors.Red, emoji: "⚠️" },
@@ -12,36 +13,41 @@ async function handleError(interaction, error, type = "DEFAULT") {
 
     const errorType = ERROR_TYPES[type] || ERROR_TYPES.DEFAULT;
     
-    const safeErrorMessage = (error.stack || error.message || "Erreur inconnue")
-        .toString()
-        .slice(0, 1000)
-        .replace(/token=.+?(?=\s|$)/g, 'token=[REDACTED]')
-        .replace(/api_key=.+?(?=\s|$)/g, 'api_key=[REDACTED]');
-
-    const createErrorEmbed = (customTitle = null, customDescription = null) => {
-        return new EmbedBuilder()
-            .setTitle(`${errorType.emoji} ${customTitle || (type === "DEFAULT" ? "Erreur" : type)}`)
-            .setColor(errorType.color)
-            .setDescription(customDescription || `\`\`\`${safeErrorMessage}\`\`\``)
-            .setFooter({ text: "Besoin d'aide ? @Khalifouille" });
-    };
-
     if (error.code === 'MessageContentType') {
-        const embed = createErrorEmbed(
-            "❌ Format de message invalide",
-            "Le contenu du message n'était pas au format texte valide.\n\n" +
-            "**Solution:**\n" +
-            "- Vérifiez que vous n'essayez pas d'envoyer un objet complexe\n" +
-            "- Utilisez `.toString()` pour les valeurs non-textuelles"
-        );
+        const correctedEmbed = new EmbedBuilder()
+            .setColor(Colors.Red)
+            .setTitle("❌ Erreur de format")
+            .setDescription("Le contenu du message n'était pas au bon format.")
+            .setFooter({ text: "Cette erreur a été automatiquement corrigée" });
 
-        return sendErrorResponse(interaction, embed);
+        try {
+            return await interaction.reply({ 
+                embeds: [correctedEmbed],
+                ephemeral: true 
+            });
+        } catch (fallbackError) {
+            console.error("Fallback error handling:", fallbackError);
+            if (interaction.channel) {
+                await interaction.channel.send({ 
+                    content: `⚠️ Une erreur est survenue avec le format du message. Veuillez réessayer.`,
+                    embeds: [correctedEmbed] 
+                });
+            }
+            return;
+        }
     }
 
-    return sendErrorResponse(interaction, createErrorEmbed());
-}
+    const errorMessage = (error.stack || error.message || "Erreur inconnue")
+        .toString()
+        .slice(0, 1000)
+        .replace(/token=.+?(?=\s|$)/g, 'token=[REDACTED]');
 
-async function sendErrorResponse(interaction, errorEmbed) {
+    const errorEmbed = new EmbedBuilder()
+        .setTitle(`${errorType.emoji} ${type === "DEFAULT" ? "Erreur" : type}`)
+        .setColor(errorType.color)
+        .setDescription(`\`\`\`${errorMessage}\`\`\``)
+        .setFooter({ text: "Besoin d'aide ? @Khalifouille" });
+
     try {
         if (interaction.replied || interaction.deferred) {
             await interaction.editReply({ embeds: [errorEmbed] });
@@ -51,17 +57,13 @@ async function sendErrorResponse(interaction, errorEmbed) {
                 ephemeral: true 
             });
         }
-    } catch (sendError) {
-        console.error("Échec de l'envoi du message d'erreur:", sendError);
-        
+    } catch (err) {
+        console.error("Échec de l'envoi du message d'erreur :", err);
         if (interaction.channel) {
-            try {
-                await interaction.channel.send({
-                    embeds: [errorEmbed.setFooter({ text: "Erreur via fallback channel" })]
-                });
-            } catch (channelError) {
-                console.error("Échec critique d'envoi d'erreur:", channelError);
-            }
+            await interaction.channel.send({ 
+                content: `${errorType.emoji} Une erreur est survenue!`,
+                embeds: [errorEmbed] 
+            });
         }
     }
 }
