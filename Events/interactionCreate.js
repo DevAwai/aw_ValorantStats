@@ -40,7 +40,9 @@ module.exports = async (bot, interaction) => {
                 }
 
                 if (metier === "PECHEUR") {
-                    await startFishingMiniGame(interaction, userId, config);
+                    await startPecheurMiniGame(interaction, userId, config);
+                } else if (metier === "BUCHERON") {
+                    await startBucheronMiniGame(interaction, userId, config);
                 } else {
                     const earnings = Math.floor(Math.random() * (config.gainMax - config.gainMin + 1)) + config.gainMin;
                     updateUserBalance(userId, earnings);
@@ -68,8 +70,7 @@ module.exports = async (bot, interaction) => {
         }
     }
 };
-
-async function startFishingMiniGame(interaction, userId, config) {
+async function startPecheurMiniGame(interaction, userId, config) {
     try {
         const fishingEmbed = new EmbedBuilder()
             .setColor('#0077FF')
@@ -145,6 +146,90 @@ async function startFishingMiniGame(interaction, userId, config) {
         console.error("Erreur lors du mini-jeu de pêche:", error);
         await interaction.followUp({
             content: "❌ Une erreur est survenue pendant le mini-jeu.",
+            ephemeral: true
+        });
+    }
+}
+
+async function startBucheronMiniGame(interaction, userId, config) {
+    try {
+        const trees = 10; 
+        let remainingTrees = trees;
+
+        const weaponEmbed = new EmbedBuilder()
+            .setColor('#8B4513')
+            .setTitle('🪓 Vous êtes en train de couper des arbres...')
+            .setDescription('Cliquez sur l\'emoji 🪓 pour couper un arbre.')
+            .addFields(
+                { name: 'Arbres restants', value: `${remainingTrees} arbres à couper`, inline: true }
+            );
+        
+        const row = new ActionRowBuilder().addComponents(
+            new ButtonBuilder()
+                .setCustomId('cut_tree')
+                .setLabel('🪓 Couper un arbre')
+                .setStyle(ButtonStyle.Primary)
+        );
+
+        await interaction.update({ 
+            embeds: [weaponEmbed],
+            components: [row],
+            ephemeral: true
+        });
+
+        const filter = i => i.customId === 'cut_tree' && i.user.id === interaction.user.id;
+        const collector = interaction.channel.createMessageComponentCollector({
+            filter,
+            time: 60000
+        });
+
+        collector.on('collect', async (collected) => {
+            remainingTrees--;
+
+            if (remainingTrees <= 0) {
+                const earnings = Math.floor(Math.random() * (config.gainMax - config.gainMin + 1)) + config.gainMin;
+                updateUserBalance(userId, earnings);
+                await collected.update({
+                    content: `Félicitations ! Vous avez coupé tous les arbres et gagné **${earnings} vcoins** 🪓`,
+                    embeds: [],
+                    components: [],
+                    ephemeral: true
+                });
+                collector.stop();
+            } else {
+                await collected.update({
+                    content: `Arbre coupé ! Il reste **${remainingTrees}** arbres à couper.`,
+                    embeds: [],
+                    components: [],
+                    ephemeral: true
+                });
+
+                const updatedEmbed = new EmbedBuilder()
+                    .setColor('#8B4513')
+                    .setTitle('🪓 Vous êtes en train de couper des arbres...')
+                    .setDescription('Cliquez sur l\'emoji 🪓 pour couper un arbre.')
+                    .addFields(
+                        { name: 'Arbres restants', value: `${remainingTrees} arbres à couper`, inline: true }
+                    );
+
+                await interaction.editReply({
+                    embeds: [updatedEmbed]
+                });
+            }
+        });
+
+        collector.on('end', async () => {
+            if (remainingTrees > 0) {
+                await interaction.followUp({
+                    content: `Le temps est écoulé ! Il vous reste **${remainingTrees}** arbres à couper.`,
+                    ephemeral: true
+                });
+            }
+        });
+    } catch (error) {
+        console.error("Erreur lors du mini-jeu de bûcheron:", error);
+        await interaction.followUp({
+            content: "❌ Une erreur est survenue pendant le mini-jeu de bûcheron.",
             ephemeral: true
         });
     }
