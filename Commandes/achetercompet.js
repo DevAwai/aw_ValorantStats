@@ -5,23 +5,19 @@ const path = require('path');
 const COMPETENCIES_FILE = path.join(__dirname, '../data/competencies.json');
 
 let playerCompetencies = {};
-
 try {
-    playerCompetencies = JSON.parse(fs.readFileSync(COMPETENCIES_FILE, 'utf8'));
-    console.log('Competencies loaded successfully');
+    const data = fs.readFileSync(COMPETENCIES_FILE, 'utf8');
+    playerCompetencies = JSON.parse(data);
+    console.log('Compétences chargées avec succès');
 } catch (error) {
-    console.error('Error loading competencies:', error);
+    console.error('Erreur de chargement, création nouveau fichier:', error);
     playerCompetencies = {};
-    fs.writeFileSync(COMPETENCIES_FILE, JSON.stringify({}, null, 2), 'utf8');
+    fs.writeFileSync(COMPETENCIES_FILE, JSON.stringify({}, null, 2));
 }
 
-function saveCompetenciesSync() {
-    try {
-        fs.writeFileSync(COMPETENCIES_FILE, JSON.stringify(playerCompetencies, null, 2), 'utf8');
-        console.log('Competencies saved successfully');
-    } catch (error) {
-        console.error('Error saving competencies:', error);
-    }
+function saveCompetencies() {
+    fs.writeFileSync(COMPETENCIES_FILE, JSON.stringify(playerCompetencies, null, 2));
+    console.log('Compétences sauvegardées');
 }
 
 const AVAILABLE_COMPETENCIES = {
@@ -70,21 +66,25 @@ module.exports = {
             const competPrice = competenceData.price;
 
             if (!playerCompetencies[userId]) {
-                playerCompetencies[userId] = [];
+                playerCompetencies[userId] = {
+                    competences: [],
+                    antivol: { count: 0 }
+                };
+            } else {
+                if (!playerCompetencies[userId].competences) {
+                    playerCompetencies[userId].competences = [];
+                }
+                if (!playerCompetencies[userId].antivol) {
+                    playerCompetencies[userId].antivol = { count: 0 };
+                }
             }
 
             if (competenceName === "Antivol") {
-                const currentAntivol = playerCompetencies[userId]?.antivol?.count || 0;
-                
-                if (currentAntivol >= 3) {
+                if (playerCompetencies[userId].antivol.count >= 3) {
                     return interaction.reply({ 
                         content: "❌ Vous avez déjà le maximum d'Antivols (3)!", 
                         ephemeral: true 
                     });
-                }
-
-                if (!playerCompetencies[userId].antivol) {
-                    playerCompetencies[userId].antivol = { count: 0 };
                 }
 
                 const userBalance = getUserBalance(userId);
@@ -97,25 +97,19 @@ module.exports = {
 
                 updateUserBalance(userId, -competPrice);
                 playerCompetencies[userId].antivol.count++;
-                playerCompetencies[userId].antivol.lastPurchase = new Date().toISOString();
                 
-                if (!playerCompetencies[userId].includes("Antivol")) {
-                    playerCompetencies[userId].push("Antivol");
+                if (!playerCompetencies[userId].competences.includes("Antivol")) {
+                    playerCompetencies[userId].competences.push("Antivol");
                 }
-                
-                saveCompetenciesSync();
 
+                saveCompetencies();
                 return interaction.reply({ 
-                    content: `✅ Achat réussi! Vous avez acquis une protection Antivol (${playerCompetencies[userId].antivol.count}/3) pour **${competPrice} vcoins**.`,
+                    content: `✅ Achat réussi! Antivol (${playerCompetencies[userId].antivol.count}/3) pour ${competPrice} vcoins.`,
                     ephemeral: true
                 });
             }
 
-            const alreadyOwned = playerCompetencies[userId].some(
-                comp => comp.toLowerCase() === competenceName.toLowerCase()
-            );
-            
-            if (alreadyOwned) {
+            if (playerCompetencies[userId].competences.includes(competenceName)) {
                 return interaction.reply({ 
                     content: "❌ Vous possédez déjà cette compétence!", 
                     ephemeral: true 
@@ -131,8 +125,7 @@ module.exports = {
             }
 
             updateUserBalance(userId, -competPrice);
-            playerCompetencies[userId].push(competenceName);
-
+            playerCompetencies[userId].competences.push(competenceName);
             saveCompetencies();
 
             await interaction.reply({ 
@@ -140,10 +133,12 @@ module.exports = {
                 ephemeral: true
             });
 
-            saveCompetenciesSync();
-
         } catch (error) {
-            await handleError(interaction, error, "API");
+            console.error("Erreur dans achetercompet:", error);
+            await interaction.reply({
+                content: "❌ Une erreur est survenue lors de l'achat",
+                ephemeral: true
+            });
         }
     }
 };

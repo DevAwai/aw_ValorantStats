@@ -13,8 +13,8 @@ module.exports = {
     async execute(interaction) {
         try {
             const userId = interaction.user.id;
-
             let playerCompetencies = {};
+
             try {
                 playerCompetencies = JSON.parse(fs.readFileSync(competenciesPath, 'utf8'));
             } catch (error) {
@@ -22,20 +22,19 @@ module.exports = {
                 playerCompetencies = {};
             }
 
-            const competences = playerCompetencies[userId] || [];
+            const userData = playerCompetencies[userId] || { competences: [], antivol: { count: 0 } };
+            const competences = userData.competences || [];
             
             const embed = new EmbedBuilder()
                 .setColor('#0099ff')
                 .setTitle('📜 Vos Compétences')
                 .setThumbnail(interaction.user.displayAvatarURL())
                 .setTimestamp()
-                .setFooter({ text: `Demandé par ${interaction.user.username}` });
+                .setFooter({ text: interaction.user.username });
 
             if (competences.length === 0) {
-                embed.setDescription('❌ Vous ne possédez aucune compétence actuellement.')
-                   .setFooter({ text: 'Utilisez /achetercompet pour en acquérir' });
-            } 
-            else {
+                embed.setDescription('❌ Vous ne possédez aucune compétence actuellement.');
+            } else {
                 const emojis = {
                     voleur: '🕵️‍♂️',
                     travailleur: '💼',
@@ -43,44 +42,32 @@ module.exports = {
                     default: '🔹'
                 };
 
-                embed.setDescription('Voici la liste de vos compétences :')
-                     .addFields(
-                         competences.map(comp => {
-                             const compLower = comp.toLowerCase();
-                                 
-                             if (compLower === 'antivol') {
-                                const antivolData = playerCompetencies[userId]?.antivol || { count: 0 };
-                                return {
-                                    name: `${emojis.antivol} ${comp}`,
-                                    value: `Protections: ${antivolData.count}/3`,
-                                    inline: false
-                                };
-                            }
-                             
-                             return {
-                                 name: `${emojis[compLower] || emojis.default} ${comp}`,
-                                 value: '\u200B',
-                                 inline: false
-                             };
-                         })
-                     );
+                const fields = competences.map(comp => {
+                    const compLower = comp.toLowerCase();
+                    if (compLower === 'antivol') {
+                        return {
+                            name: `${emojis.antivol} ${comp}`,
+                            value: `Protections: ${userData.antivol.count}/3`,
+                            inline: false
+                        };
+                    }
+                    return {
+                        name: `${emojis[compLower] || emojis.default} ${comp}`,
+                        value: '\u200B',
+                        inline: false
+                    };
+                });
+
+                embed.setDescription('Voici vos compétences:').addFields(fields);
             }
 
-            await interaction.reply({ 
-                embeds: [embed], 
-                flags: 1 << 6
-            });
+            await interaction.reply({ embeds: [embed], ephemeral: true });
 
         } catch (error) {
             console.error("Erreur dans mescompet:", error);
-            const errorEmbed = new EmbedBuilder()
-                .setColor('#ff0000')
-                .setTitle('❌ Erreur')
-                .setDescription('Une erreur est survenue lors de la récupération de vos compétences.');
-            
-            await interaction.reply({ 
-                embeds: [errorEmbed], 
-                flags: 1 << 6 
+            await interaction.reply({
+                content: "❌ Une erreur est survenue",
+                ephemeral: true
             });
         }
     }
