@@ -301,14 +301,13 @@ async function startBucheronMiniGame(interaction, userId, config) {
 }
 
 async function startCamionneurMiniGame(interaction, userId, config) {
-    const GLOBAL_WORK_COOLDOWN = 60 * 1000; 
     const gameConfig = {
         duration: 30000, 
         baseEarnings: Math.floor(Math.random() * (config.gainMax - config.gainMin + 1)) + config.gainMin,
         destinations: [
-            { name: "Entrepôt Nord", emoji: "🏭", distance: 10 },
-            { name: "Centre Ville", emoji: "🏙️", distance: 7 },
-            { name: "Zone Industrielle", emoji: "🏗️", distance: 12 }
+            { name: "Daronne à Morai", emoji: "🐩", distance: 10 },
+            { name: "Daronne à Youness", emoji: "🐩", distance: 7 },
+            { name: "Chez Khali", emoji: "🧍‍♂️", distance: 12 }
         ],
         progressPerClick: 1.2
     };
@@ -328,7 +327,7 @@ async function startCamionneurMiniGame(interaction, userId, config) {
         return `[DÉPART] ${'▬'.repeat(filled)}🚛${'▬'.repeat(segments - filled)} ${gameState.destination.emoji} [ARRIVÉE]`;
     };
 
-    const createEmbed = () => {
+    const createMainEmbed = () => {
         const timeLeft = Math.max(0, gameState.startTime + gameConfig.duration - Date.now());
         return new EmbedBuilder()
             .setColor('#FFA500')
@@ -341,6 +340,14 @@ async function startCamionneurMiniGame(interaction, userId, config) {
             );
     };
 
+    const createSuccessEmbed = (earnings) => {
+        return new EmbedBuilder()
+            .setColor('#4CAF50')
+            .setTitle('🎉 LIVRAISON RÉUSSIE !')
+            .setDescription(`**+${earnings}vcoins** ajoutés à votre solde !`)
+            .setFooter({ text: 'Préparation de la prochaine livraison...' });
+    };
+
     const endGame = async (success) => {
         if (gameState.completed) return;
         gameState.completed = true;
@@ -351,38 +358,39 @@ async function startCamionneurMiniGame(interaction, userId, config) {
         updateUserBalance(userId, earnings);
         setCooldown(userId, 'global_work', GLOBAL_WORK_COOLDOWN);
 
-        const resultEmbed = new EmbedBuilder()
-            .setColor(success ? '#4CAF50' : '#FF0000')
-            .setTitle(success ? '✅ LIVRAISON TERMINÉE !' : '❌ TEMPS ÉCOULÉ')
-            .setDescription(success 
-                ? `Vous avez gagné ${earnings}vcoins !`
-                : `Vous obtenez ${earnings}vcoins pour la distance parcourue`)
-            .addFields(
-                { name: 'Nouveau solde', value: `${getUserBalance(userId)}vcoins`, inline: true },
-                { name: 'Prochaine course', value: `<t:${Math.floor((Date.now() + GLOBAL_WORK_COOLDOWN)/1000)}:R>`, inline: true }
-            );
-
-        try {
+        if (success) {
             await gameState.message.edit({
-                embeds: [resultEmbed],
+                embeds: [createSuccessEmbed(earnings)],
                 components: []
             });
-        } catch (error) {
-            console.log("Erreur lors de la fin du jeu:", error);
-            await interaction.followUp({
-                embeds: [resultEmbed],
-                ephemeral: true
-            });
+            await new Promise(resolve => setTimeout(resolve, 1000));
         }
+
+        const resultEmbed = new EmbedBuilder()
+            .setColor('#FFA500')
+            .setTitle('🚚 LIVRAISON EXPRESS')
+            .setDescription(success 
+                ? `Livraison à ${gameState.destination.name} complétée !`
+                : `Livraison partielle à ${gameState.destination.name}`)
+            .addFields(
+                { name: 'Gagné', value: `${earnings}vcoins`, inline: true },
+                { name: 'Nouveau solde', value: `${getUserBalance(userId)}vcoins`, inline: true },
+                { name: 'Prochaine course', value: `<t:${Math.floor((Date.now() + GLOBAL_WORK_COOLDOWN)/1000)}:R>`, inline: false }
+            );
+
+        await gameState.message.edit({
+            embeds: [resultEmbed],
+            components: []
+        });
     };
 
     try {
         gameState.message = await interaction.reply({
-            embeds: [createEmbed()],
+            embeds: [createMainEmbed()],
             components: [new ActionRowBuilder().addComponents(
                 new ButtonBuilder()
                     .setCustomId('drive_truck')
-                    .setLabel('ACCÉLÉRER')
+                    .setLabel('POUET POUET')
                     .setEmoji('⏩')
                     .setStyle(ButtonStyle.Primary)
             )],
@@ -399,7 +407,7 @@ async function startCamionneurMiniGame(interaction, userId, config) {
             
             gameState.progress += gameConfig.progressPerClick + (Math.random() * 0.5);
             
-            if (gameState.progress >= gameState.destination.distance) {
+            if (gameState.progress >= gameState.destination.distance && !gameState.completed) {
                 endGame(true);
                 collector.stop();
             }
@@ -407,11 +415,11 @@ async function startCamionneurMiniGame(interaction, userId, config) {
             try {
                 await i.deferUpdate();
                 await gameState.message.edit({ 
-                    embeds: [createEmbed()],
+                    embeds: [createMainEmbed()],
                     components: [new ActionRowBuilder().addComponents(
                         new ButtonBuilder()
                             .setCustomId('drive_truck')
-                            .setLabel('ACCÉLÉRER')
+                            .setLabel('POUET POUET')
                             .setEmoji('⏩')
                             .setStyle(ButtonStyle.Primary)
                     )]
