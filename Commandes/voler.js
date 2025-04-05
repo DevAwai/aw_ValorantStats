@@ -45,9 +45,9 @@ module.exports = {
             }
 
             const cooldownStatus = checkCooldown(userId, 'voler', COOLDOWN_TIME);
-            if (cooldownStatus !== true) {
+            if (typeof cooldownStatus === 'string') {  
                 return await interaction.reply({
-                    content: `⏳ ${cooldownStatus}`,
+                    content: cooldownStatus,
                     ephemeral: true
                 });
             }
@@ -61,33 +61,35 @@ module.exports = {
                 try {
                     const success = userId === khali ? true : Math.random() < 0.1;
                     const eligiblePlayers = getAllUsersWithBalance().filter(u => u.id !== userId);
-
+            
                     if (success && eligiblePlayers.length > 0) {
                         const victim = eligiblePlayers[Math.floor(Math.random() * eligiblePlayers.length)];
-                        const victimData = playerCompetencies[victim.id] || {};
+                        const victimName = victim.username || "un joueur";
+                        const victimData = playerCompetencies[victim.id] || { antivol: { count: 0 } };
                         
                         if (victimData.antivol?.count > 0) {
-                            victimData.antivol.count--;
+                            playerCompetencies[victim.id] = playerCompetencies[victim.id] || { competences: [], antivol: { count: 0 } };
+                            playerCompetencies[victim.id].antivol.count--;
                             saveCompetencies();
                             
                             return await interaction.followUp({
-                                content: `🛡️ ${victim.username} était protégé(e) par un Antivol! (${victimData.antivol.count}/3 restants)`,
-                                ephemeral: false
+                                content: `🛡️ ${victimName} était protégé(e) par un Antivol! (${playerCompetencies[victim.id].antivol.count}/3 restants)`,
+                                ephemeral: true
                             });
                         }
-
+            
                         const stolenAmount = Math.floor(Math.random() * 5000) + 1;
                         updateUserBalance(victim.id, -stolenAmount);
                         updateUserBalance(userId, stolenAmount);
-
+            
                         await interaction.followUp({
-                            content: `🔴 ${user.username} a volé ${stolenAmount} vcoins à ${victim.username}!`,
+                            content: `🔴 ${user.username} a volé ${stolenAmount} vcoins à ${victimName}!`,
                             ephemeral: false
                         });
                     } else if (success) {
                         await interaction.followUp({
                             content: "💰 Personne à voler...",
-                            ephemeral: false
+                            ephemeral: true
                         });
                     } else {
                         updateUserBalance(userId, -10000);
@@ -97,9 +99,9 @@ module.exports = {
                         });
                     }
                 } catch (error) {
-                    console.error("Erreur lors du vol:", error);
+                    console.error("Erreur:", error);
                     await interaction.followUp({
-                        content: "❌ Une erreur est survenue pendant le vol",
+                        content: "❌ Erreur pendant le vol",
                         ephemeral: true
                     });
                 }
