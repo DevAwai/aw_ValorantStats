@@ -2,7 +2,7 @@ const { InteractionType, EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonSt
 const { updateUserBalance, getUserBalance } = require("../utils/creditsManager");
 const { checkCooldown, setCooldown, formatDuration } = require("../utils/cooldownManager");
 
-const METIERS = {
+const JOBS_CONFIG = {
     PECHEUR: { emoji: '🎣', gainMin: 1500, gainMax: 3500 },
     BUCHERON: { emoji: '🪓', gainMin: 2000, gainMax: 5000 },
     CAMIONNEUR: { emoji: '🚚', gainMin: 3000, gainMax: 6000 },
@@ -10,70 +10,85 @@ const METIERS = {
     LIVREUR: { emoji: '📦', gainMin: 2500, gainMax: 5000 }
 };
 
-const GLOBAL_WORK_COOLDOWN = 1000;
+const GLOBAL_WORK_COOLDOWN = 1000; 
 
 module.exports = async (bot, interaction) => {
     try {
         if (interaction.type === InteractionType.ApplicationCommand) {
-            let command = require(`../Commandes/${interaction.commandName}`);
-            
-            if (!command.execute) {
+            const command = require(`../Commandes/${interaction.commandName}`);
+            if (!command?.execute) {
                 return interaction.reply({ 
-                    content: "❌ Cette commande ne peut pas être exécutée.", 
+                    content: "❌ Commande non exécutable", 
                     ephemeral: true 
                 });
             }
-
             await command.execute(interaction);
-        } else if (interaction.isButton()) {
-            if (interaction.customId.startsWith('work_')) {
-                const metier = interaction.customId.split('_')[1];
-                const config = METIERS[metier];
-                const userId = interaction.user.id;
-
-                const remaining = checkCooldown(userId, 'global_work', GLOBAL_WORK_COOLDOWN);
-                if (remaining !== true) {
-                    return await interaction.reply({ 
-                        content: `⏳ Vous devez attendre ${formatDuration(remaining)} avant de pouvoir travailler à nouveau!`,
-                        ephemeral: true 
-                    });
-                }
-
-                if (metier === "PECHEUR") {
-                    await startPecheurMiniGame(interaction, userId, config);
-                } else if (metier === "BUCHERON") {
-                    await startBucheronMiniGame(interaction, userId, config);
-                } else if (metier === "CAMIONNEUR") {
-                    await startCamionneurMiniGame(interaction, userId, config);
-                } else if (metier === "PETROLIER") {
-                    await startPetrolierMiniGame(interaction, userId, config);
-                } else {
-                    const earnings = Math.floor(Math.random() * (config.gainMax - config.gainMin + 1)) + config.gainMin;
-                    updateUserBalance(userId, earnings);
-                    setCooldown(userId, 'global_work', GLOBAL_WORK_COOLDOWN);
-
-                    const embed = new EmbedBuilder()
-                        .setColor('#4CAF50')
-                        .setTitle(`${config.emoji} Travail effectué (${metier})`)
-                        .setDescription(`Vous avez gagné **${earnings} vcoins**!`)
-                        .addFields(
-                            { name: 'Nouveau solde', value: `${getUserBalance(userId)} vcoins`, inline: true },
-                            { name: 'Prochain travail possible', value: `<t:${Math.floor((Date.now() + GLOBAL_WORK_COOLDOWN) / 1000)}:R>`, inline: true }
-                        );
-                    await interaction.reply({ embeds: [embed], ephemeral: true });
-                }
-            }
+        } 
+        else if (interaction.isButton() && interaction.customId.startsWith('work_')) {
+            await handleWorkInteraction(interaction);
         }
     } catch (error) {
-        console.error("Erreur dans interactionCreate:", error);
+        console.error("Erreur d'interaction:", error);
         if (!interaction.replied && !interaction.deferred) {
             await interaction.reply({ 
-                content: "❌ Une erreur est survenue lors du traitement de votre action.", 
+                content: "❌ Erreur de traitement", 
                 ephemeral: true 
             });
         }
     }
 };
+
+async function handleWorkInteraction(interaction) {
+    const [_, jobName] = interaction.customId.split('_');
+    const jobConfig = JOBS_CONFIG[jobName];
+    const userId = interaction.user.id;
+
+    const cooldownStatus = checkCooldown(userId, 'global_work', GLOBAL_WORK_COOLDOWN);
+    if (cooldownStatus !== true) {
+        return interaction.reply({ 
+            content: `⏳ Attendez ${formatDuration(cooldownStatus)}`, 
+            ephemeral: true 
+        });
+    }
+
+    switch(jobName) {
+        case 'PECHEUR':
+            await startPecheurMiniGame(interaction, userId, jobConfig);
+            break;
+        case 'BUCHERON':
+            await startBucheronMiniGame(interaction, userId, jobConfig);
+            break;
+        case 'CAMIONNEUR':
+            await startCamionneurMiniGame(interaction, userId, jobConfig);
+            break;
+        case 'PETROLIER':
+            await startPetrolierMiniGame(interaction, userId, jobConfig);
+            break;
+        default:
+            await handleSimpleJob(interaction, userId, jobConfig, jobName);
+    }
+}
+
+async function handleSimpleJob(interaction, userId, config, jobName) {
+    const earnings = calculateEarnings(config.gainMin, config.gainMax);
+    updateUserBalance(userId, earnings);
+    setCooldown(userId, 'global_work', GLOBAL_WORK_COOLDOWN);
+
+    const embed = new EmbedBuilder()
+        .setColor('#4CAF50')
+        .setTitle(`${config.emoji} ${jobName}`)
+        .setDescription(`Gains: **${earnings} vcoins**`)
+        .addFields(
+            { name: 'Solde', value: `${getUserBalance(userId)} vcoins`, inline: true },
+            { name: 'Prochain travail', value: `<t:${Math.floor((Date.now() + GLOBAL_WORK_COOLDOWN) / 1000)}:R>`, inline: true }
+        );
+
+    await interaction.reply({ embeds: [embed], ephemeral: true });
+}
+
+function calculateEarnings(min, max) {
+    return Math.floor(Math.random() * (max - min + 1)) + min;
+}
 
 async function startPecheurMiniGame(interaction, userId, config) {
     try {
