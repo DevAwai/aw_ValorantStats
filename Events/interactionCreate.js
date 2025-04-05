@@ -10,7 +10,7 @@ const METIERS = {
     LIVREUR: { emoji: '📦', gainMin: 2500, gainMax: 5000 }
 };
 
-const GLOBAL_WORK_COOLDOWN = 2 * 60 * 60 * 1000;
+const GLOBAL_WORK_COOLDOWN = 1000;
 
 module.exports = async (bot, interaction) => {
     try {
@@ -301,174 +301,144 @@ async function startBucheronMiniGame(interaction, userId, config) {
 }
 
 async function startCamionneurMiniGame(interaction, userId, config) {
-    try {
-        const DELIVERY_TIME = 30000;
-        const BASE_EARNINGS = Math.floor(Math.random() * (config.gainMax - config.gainMin + 1)) + config.gainMin;
-        const destinations = [
+    const GLOBAL_WORK_COOLDOWN = 60 * 1000;
+    const gameConfig = {
+        duration: 30000, 
+        baseEarnings: Math.floor(Math.random() * (config.gainMax - config.gainMin + 1)) + config.gainMin,
+        destinations: [
             { name: "Entrepôt Nord", emoji: "🏭", distance: 8 },
             { name: "Centre Ville", emoji: "🏙️", distance: 5 },
             { name: "Zone Industrielle", emoji: "🏗️", distance: 10 }
-        ];
+        ],
+        progressPerClick: 0.8 
+    };
 
-        const destination = destinations[Math.floor(Math.random() * destinations.length)];
+    const gameState = {
+        active: true,
+        destination: gameConfig.destinations[Math.floor(Math.random() * gameConfig.destinations.length)],
+        progress: 0,
+        startTime: Date.now(),
+        message: null
+    };
 
-        const createRouteVisual = (progress) => {
-            const totalSegments = 20;
-            const progressSegments = Math.min(totalSegments, Math.floor((progress / destination.distance) * totalSegments));
-            return `[DÉPART] ${"▬".repeat(progressSegments)}🚛${"▬".repeat(totalSegments - progressSegments)} ${destination.emoji} [ARRIVÉE]`;
-        };
+    const createRouteVisual = () => {
+        const segments = 20;
+        const filled = Math.min(segments, Math.floor((gameState.progress / gameState.destination.distance) * segments));
+        return `[DÉPART] ${'▬'.repeat(filled)}🚛${'▬'.repeat(segments - filled)} ${gameState.destination.emoji} [ARRIVÉE]`;
+    };
 
-        const initialEmbed = new EmbedBuilder()
+    const createEmbed = () => {
+        const timeLeft = Math.max(0, gameState.startTime + gameConfig.duration - Date.now());
+        return new EmbedBuilder()
             .setColor('#FFA500')
-            .setTitle('🚚 MISSION DE LIVRAISON')
-            .setDescription(`**Destination:** ${destination.name} ${destination.emoji}\n\n${createRouteVisual(0)}`)
+            .setTitle('🚚 LIVRAISON EXPRESS')
+            .setDescription(`**Destination:** ${gameState.destination.name} ${gameState.destination.emoji}\n${createRouteVisual()}`)
             .addFields(
-                { name: 'Temps restant', value: `30 secondes`, inline: true },
-                { name: 'Gain potentiel', value: `${BASE_EARNINGS} vcoins`, inline: true }
+                { name: 'Temps restant', value: `${Math.ceil(timeLeft/1000)}s`, inline: true },
+                { name: 'Progression', value: `${Math.min(100, Math.floor((gameState.progress/gameState.destination.distance)*100))}%`, inline: true }
             );
+    };
 
-        const driveButton = new ActionRowBuilder().addComponents(
-            new ButtonBuilder()
-                .setCustomId('drive_truck')
-                .setLabel('CONDURE')
-                .setEmoji('🚛')
-                .setStyle(ButtonStyle.Primary)
-        );
-
-        let progress = 0;
-        let startTime = Date.now();
-        let isDriving = false;
-        let gameActive = true;
-        let message;
-
+    const safeEdit = async (embed, components) => {
+        if (!gameState.active || !gameState.message) return false;
         try {
-            message = await interaction.reply({ 
-                embeds: [initialEmbed], 
-                components: [driveButton],
-                fetchReply: true,
-                ephemeral: true
-            });
-        } catch (err) {
-            console.error("Erreur lors de l'envoi du message initial:", err);
-            return;
+            await gameState.message.edit({ embeds: [embed], components });
+            return true;
+        } catch (error) {
+            if (error.code === 10008) { 
+                console.log("Message supprimé - arrêt du jeu");
+                gameState.active = false;
+            }
+            return false;
         }
+    };
 
-        const safeEdit = async (newEmbed, components = []) => {
-            try {
-                if (message && gameActive) {
-                    await message.edit({ 
-                        embeds: [newEmbed], 
-                        components 
-                    });
-                }
-            } catch (err) {
-                console.error("Erreur lors de l'édition du message:", err);
-                gameActive = false;
-            }
-        };
+    try {
+        gameState.message = await interaction.reply({
+            embeds: [createEmbed()],
+            components: [new ActionRowBuilder().addComponents(
+                new ButtonBuilder()
+                    .setCustomId('drive_truck')
+                    .setLabel('CONDURE')
+                    .setEmoji('⏩')
+                    .setStyle(ButtonStyle.Primary)
+            )],
+            fetchReply: true,
+            ephemeral: false
+        });
 
-        const updateGame = async () => {
-            if (!gameActive) return;
-
-            const timeLeft = Math.max(0, startTime + DELIVERY_TIME - Date.now());
-            const timeLeftSeconds = Math.ceil(timeLeft / 1000);
-
-            const updatedEmbed = new EmbedBuilder()
-                .setColor('#FFA500')
-                .setTitle('🚚 MISSION DE LIVRAISON')
-                .setDescription(`**Destination:** ${destination.name} ${destination.emoji}\n\n${createRouteVisual(progress)}`)
-                .addFields(
-                    { name: 'Temps restant', value: `${timeLeftSeconds} secondes`, inline: true },
-                    { name: 'Progression', value: `${Math.min(100, Math.floor((progress / destination.distance) * 100))}%`, inline: true }
-                );
-
-            await safeEdit(updatedEmbed, isDriving ? [] : [driveButton]);
-        };
-
-        const gameInterval = setInterval(async () => {
-            if (!gameActive) {
-                clearInterval(gameInterval);
-                return;
-            }
-
-            if (isDriving) {
-                progress += 0.2 + Math.random() * 0.3;
-                
-                if (progress >= destination.distance) {
-                    clearInterval(gameInterval);
-                    await completeDelivery(true);
-                }
-            }
-
-            await updateGame();
-
-            if (Date.now() > startTime + DELIVERY_TIME) {
-                clearInterval(gameInterval);
-                await completeDelivery(false);
-            }
-        }, 1000);
-
-        const collector = message.createMessageComponentCollector({ 
+        const collector = gameState.message.createMessageComponentCollector({ 
             filter: i => i.user.id === userId,
-            time: DELIVERY_TIME
+            time: gameConfig.duration
         });
 
         collector.on('collect', async i => {
             if (i.customId === 'drive_truck') {
-                isDriving = true;
+                gameState.progress += gameConfig.progressPerClick + (Math.random() * 0.3);
+                
                 try {
                     await i.deferUpdate();
-                    await updateGame();
-                } catch (err) {
-                    console.error("Erreur lors de la gestion de l'interaction:", err);
+                    await safeEdit(createEmbed(), [new ActionRowBuilder().addComponents(
+                        new ButtonBuilder()
+                            .setCustomId('drive_truck')
+                            .setLabel('CONDURE')
+                            .setEmoji('⏩')
+                            .setStyle(ButtonStyle.Primary)
+                    )]);
+                } catch (error) {
+                    console.error("Erreur lors de l'interaction:", error);
                 }
             }
         });
 
-        collector.on('end', () => {
-            gameActive = false;
+        collector.on('end', async () => {
+            gameState.active = false;
+            const success = gameState.progress >= gameState.destination.distance;
+            const earnings = success ? gameConfig.baseEarnings : Math.floor(gameConfig.baseEarnings * 0.3);
+
+            updateUserBalance(userId, earnings);
+            setCooldown(userId, 'global_work', GLOBAL_WORK_COOLDOWN);
+
+            const resultEmbed = new EmbedBuilder()
+                .setColor(success ? '#4CAF50' : '#FF0000')
+                .setTitle(success ? '✅ LIVRAISON RÉUSSIE !' : '❌ LIVRAISON INCOMPLÈTE')
+                .setDescription(`Vous avez gagné ${earnings} vcoins!`)
+                .addFields(
+                    { name: 'Nouveau solde', value: `${getUserBalance(userId)} vcoins`, inline: true },
+                    { name: 'Prochaine livraison', value: `<t:${Math.floor((Date.now() + GLOBAL_WORK_COOLDOWN)/1000)}:R>`, inline: true }
+                );
+
+            await safeEdit(resultEmbed, []);
         });
 
-        async function completeDelivery(success) {
-            gameActive = false;
-            
-            if (success) {
-                const timeTaken = Date.now() - startTime;
-                const timeBonus = Math.floor((DELIVERY_TIME - timeTaken) / DELIVERY_TIME * BASE_EARNINGS * 0.5);
-                const totalEarnings = BASE_EARNINGS + timeBonus;
-                
-                updateUserBalance(userId, totalEarnings);
-                setCooldown(userId, 'global_work', GLOBAL_WORK_COOLDOWN);
-
-                const successEmbed = new EmbedBuilder()
-                    .setColor('#4CAF50')
-                    .setTitle('✅ LIVRAISON RÉUSSIE!')
-                    .setDescription(`Livraison à ${destination.name} en ${Math.floor(timeTaken/1000)}s`)
-                    .addFields(
-                        { name: 'Gain total', value: `${totalEarnings} vcoins`, inline: false },
-                        { name: 'Nouveau solde', value: `${getUserBalance(userId)} vcoins`, inline: true }
-                    );
-
-                await safeEdit(successEmbed);
-            } else {
-                const failedEmbed = new EmbedBuilder()
-                    .setColor('#FF0000')
-                    .setTitle('❌ LIVRAISON ÉCHOUÉE')
-                    .setDescription(`Temps écoulé avant d'arriver à ${destination.name}`);
-
-                await safeEdit(failedEmbed);
+        const interval = setInterval(async () => {
+            if (!gameState.active) {
+                clearInterval(interval);
+                return;
             }
-        }
+            
+            const timeLeft = gameState.startTime + gameConfig.duration - Date.now();
+            if (timeLeft <= 0) {
+                clearInterval(interval);
+                collector.stop();
+                return;
+            }
+
+            await safeEdit(createEmbed(), [new ActionRowBuilder().addComponents(
+                new ButtonBuilder()
+                    .setCustomId('drive_truck')
+                    .setLabel('CONDURE')
+                    .setEmoji('⏩')
+                    .setStyle(ButtonStyle.Primary)
+            )]);
+        }, 1000);
 
     } catch (error) {
-        console.error("Erreur dans le mini-jeu de camionneur:", error);
-        try {
-            await interaction.followUp({
-                content: "❌ Une erreur est survenue pendant la livraison.",
-                ephemeral: true
-            });
-        } catch (err) {
-            console.error("Échec de l'envoi du message d'erreur:", err);
-        }
+        console.error("Erreur dans le mini-jeu:", error);
+        gameState.active = false;
+        await interaction.followUp({ 
+            content: "❌ Le système de livraison rencontre des problèmes...", 
+            ephemeral: true 
+        }).catch(console.error);
     }
 }
