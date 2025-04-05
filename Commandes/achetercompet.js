@@ -1,16 +1,27 @@
 const { getUserBalance, updateUserBalance } = require('../utils/creditsManager');
 const { handleError } = require('../utils/errorHandler');
 const fs = require('fs');
+const path = require('path');
+const COMPETENCIES_FILE = path.join(__dirname, '../data/competencies.json');
 
 let playerCompetencies = {};
+
 try {
-    playerCompetencies = JSON.parse(fs.readFileSync('./data/competencies.json', 'utf8'));
+    playerCompetencies = JSON.parse(fs.readFileSync(COMPETENCIES_FILE, 'utf8'));
+    console.log('Competencies loaded successfully');
 } catch (error) {
-    fs.writeFileSync('./data/competencies.json', JSON.stringify({}), 'utf8');
+    console.error('Error loading competencies:', error);
+    playerCompetencies = {};
+    fs.writeFileSync(COMPETENCIES_FILE, JSON.stringify({}, null, 2), 'utf8');
 }
 
-function saveCompetencies() {
-    fs.writeFileSync('./data/competencies.json', JSON.stringify(playerCompetencies), 'utf8');
+function saveCompetenciesSync() {
+    try {
+        fs.writeFileSync(COMPETENCIES_FILE, JSON.stringify(playerCompetencies, null, 2), 'utf8');
+        console.log('Competencies saved successfully');
+    } catch (error) {
+        console.error('Error saving competencies:', error);
+    }
 }
 
 const AVAILABLE_COMPETENCIES = {
@@ -75,7 +86,7 @@ module.exports = {
                 if (!playerCompetencies[userId].antivol) {
                     playerCompetencies[userId].antivol = { count: 0 };
                 }
-                
+
                 const userBalance = getUserBalance(userId);
                 if (userBalance < competPrice) {
                     return interaction.reply({ 
@@ -92,7 +103,7 @@ module.exports = {
                     playerCompetencies[userId].push("Antivol");
                 }
                 
-                saveCompetencies();
+                saveCompetenciesSync();
 
                 return interaction.reply({ 
                     content: `✅ Achat réussi! Vous avez acquis une protection Antivol (${playerCompetencies[userId].antivol.count}/3) pour **${competPrice} vcoins**.`,
@@ -121,12 +132,15 @@ module.exports = {
 
             updateUserBalance(userId, -competPrice);
             playerCompetencies[userId].push(competenceName);
+
             saveCompetencies();
 
             await interaction.reply({ 
                 content: `✅ Achat réussi! Vous avez acquis la compétence: **${competenceName}** pour **${competPrice} vcoins**.`,
                 ephemeral: true
             });
+
+            saveCompetenciesSync();
 
         } catch (error) {
             await handleError(interaction, error, "API");
