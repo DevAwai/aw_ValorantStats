@@ -15,16 +15,16 @@ module.exports = {
 
             let playerCompetencies = {};
             try {
-                const data = fs.readFileSync(competenciesPath, 'utf8');
-                playerCompetencies = JSON.parse(data);
+                playerCompetencies = JSON.parse(fs.readFileSync(competenciesPath, 'utf8'));
             } catch (error) {
                 console.error("Erreur lecture competencies.json:", error);
                 playerCompetencies = {};
             }
 
-            const hasCompetence = playerCompetencies[userId] && 
-                                Array.isArray(playerCompetencies[userId]) && 
-                                playerCompetencies[userId].includes("Travailleur");
+            const userData = playerCompetencies[userId] || {};
+            const hasCompetence = userData.competences && 
+                                Array.isArray(userData.competences) && 
+                                userData.competences.includes("Travailleur");
 
             if (!hasCompetence) {
                 return await interaction.reply({
