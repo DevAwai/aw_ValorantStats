@@ -302,7 +302,7 @@ async function startBucheronMiniGame(interaction, userId, config) {
 
 async function startCamionneurMiniGame(interaction, userId, config) {
     const gameConfig = {
-        duration: 30000, 
+        duration: 30000,
         baseEarnings: Math.floor(Math.random() * (config.gainMax - config.gainMin + 1)) + config.gainMin,
         destinations: [
             { name: "Daronne à Morai", emoji: "🐩", distance: 10 },
@@ -340,30 +340,15 @@ async function startCamionneurMiniGame(interaction, userId, config) {
         return `[DÉPART] ${'▬'.repeat(filled)}🚛${'▬'.repeat(segments - filled)} ${gameState.destination.emoji} [ARRIVÉE]`;
     };
 
-    const showTemporaryResult = async (earnings) => {
-        await gameState.message.edit({
-            embeds: [
-                new EmbedBuilder()
-                    .setColor('#4CAF50')
-                    .setTitle(`🎉 +${earnings}vcoins !`)
-                    .setDescription('Livraison complétée avec succès')
-            ],
-            components: []
-        });
-        await new Promise(resolve => setTimeout(resolve, 1500));
-    };
-
     const endGame = async (success) => {
         if (gameState.completed) return;
         gameState.completed = true;
         gameState.active = false;
 
         const earnings = success ? gameConfig.baseEarnings : Math.floor(gameConfig.baseEarnings * 0.3);
-
+        
         updateUserBalance(userId, earnings);
         setCooldown(userId, 'global_work', GLOBAL_WORK_COOLDOWN);
-
-        if (success) await showTemporaryResult(earnings);
 
         await gameState.message.edit({
             embeds: [
@@ -393,7 +378,7 @@ async function startCamionneurMiniGame(interaction, userId, config) {
                     .setStyle(ButtonStyle.Primary)
             )],
             fetchReply: true,
-            //ephemeral: true
+            ephemeral: true
         });
 
         const collector = gameState.message.createMessageComponentCollector({ 
@@ -443,7 +428,7 @@ async function startCamionneurMiniGame(interaction, userId, config) {
         console.error("Erreur:", error);
         await interaction.followUp({ 
             content: "❌ Le système de livraison a rencontré une erreur", 
-            //ephemeral: true 
+            ephemeral: true 
         });
     }
 }
