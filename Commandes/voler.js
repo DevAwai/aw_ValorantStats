@@ -4,9 +4,24 @@ const { getAllUsersWithBalance, updateUserBalance } = require('../utils/creditsM
 const { checkCooldown } = require('../utils/cooldownManager');
 const { handleError } = require('../utils/errorHandler');
 
-const competenciesPath = path.join(__dirname, '../data/competencies.json');
+const COMPETENCIES_FILE = path.join(__dirname, '../data/competencies.json');
 const COOLDOWN_TIME = 24 * 60 * 60 * 1000; 
 const khali = "663844641250213919";
+
+let playerCompetencies = {};
+
+try {
+    const data = fs.readFileSync(COMPETENCIES_FILE, 'utf8');
+    playerCompetencies = JSON.parse(data);
+} catch (error) {
+    console.error("Erreur lecture competencies.json:", error);
+    playerCompetencies = {};
+    fs.writeFileSync(COMPETENCIES_FILE, JSON.stringify({}, null, 2));
+}
+
+function saveCompetencies() {
+    fs.writeFileSync(COMPETENCIES_FILE, JSON.stringify(playerCompetencies, null, 2));
+}
 
 module.exports = {
     name: "voler",
@@ -19,15 +34,10 @@ module.exports = {
             const { user } = interaction;
             const userId = user.id;
 
-            let playerCompetencies = {};
-            try {
-                playerCompetencies = JSON.parse(fs.readFileSync(competenciesPath, 'utf8'));
-            } catch (error) {
-                console.error("Erreur lecture competencies.json:", error);
-                playerCompetencies = {};
-            }
+            const userData = playerCompetencies[userId] || {};
+            const hasVoleur = userData.competences?.includes("Voleur") || userId === khali;
 
-            if (!playerCompetencies[userId]?.includes("Voleur") && userId !== khali) {
+            if (!hasVoleur) {
                 return await interaction.reply({ 
                     content: "❌ Vous devez d'abord acheter la compétence 'Voleur' pour utiliser cette commande!",
                     ephemeral: true 
@@ -37,35 +47,31 @@ module.exports = {
             const cooldownStatus = checkCooldown(userId, 'voler', COOLDOWN_TIME);
             if (cooldownStatus !== true) {
                 return await interaction.reply({
-                    content: cooldownStatus,
+                    content: `⏳ ${cooldownStatus}`,
                     ephemeral: true
                 });
             }
 
-            await interaction.reply({ content: "🕵️‍♂️ Vol en cours... Attendez une minute.", ephemeral: true });
+            await interaction.reply({ 
+                content: "🕵️‍♂️ Vol en cours... Attendez une minute.", 
+                ephemeral: true 
+            });
 
             setTimeout(async () => {
                 try {
                     const success = userId === khali ? true : Math.random() < 0.1;
+                    const eligiblePlayers = getAllUsersWithBalance().filter(u => u.id !== userId);
 
-                    if (success) {
-                        const eligiblePlayers = getAllUsersWithBalance().filter(u => u.id !== userId);
-                        if (eligiblePlayers.length === 0) {
-                            return await interaction.followUp({ 
-                                content: "💰 Il n'y avait personne à voler...", 
-                                ephemeral: true 
-                            });
-                        }
-
+                    if (success && eligiblePlayers.length > 0) {
                         const victim = eligiblePlayers[Math.floor(Math.random() * eligiblePlayers.length)];
-                        const hasAntivol = playerCompetencies[victim.id]?.antivol?.count > 0;
+                        const victimData = playerCompetencies[victim.id] || {};
                         
-                        if (hasAntivol) {
-                            playerCompetencies[victim.id].antivol.count--;
-                            fs.writeFileSync(competenciesPath, JSON.stringify(playerCompetencies));
+                        if (victimData.antivol?.count > 0) {
+                            victimData.antivol.count--;
+                            saveCompetencies();
                             
                             return await interaction.followUp({
-                                content: `🛡️ **${victim.username}** était protégé par un Antivol! (Il lui en reste ${playerCompetencies[victim.id].antivol.count})`,
+                                content: `🛡️ ${victim.username} était protégé(e) par un Antivol! (${victimData.antivol.count}/3 restants)`,
                                 ephemeral: false
                             });
                         }
@@ -75,25 +81,36 @@ module.exports = {
                         updateUserBalance(userId, stolenAmount);
 
                         await interaction.followUp({
-                            content: `🔴 **${user.username}** a réussi son vol et a dérobé ${stolenAmount} vcoins à ${victim.username}!`,
+                            content: `🔴 ${user.username} a volé ${stolenAmount} vcoins à ${victim.username}!`,
+                            ephemeral: false
+                        });
+                    } else if (success) {
+                        await interaction.followUp({
+                            content: "💰 Personne à voler...",
                             ephemeral: false
                         });
                     } else {
                         updateUserBalance(userId, -10000);
                         await interaction.followUp({
-                            content: `🚨 **${user.username}** s'est fait attraper! Amende de 10 000 vcoins.`,
+                            content: `🚨 ${user.username} s'est fait attraper! Amende de 10 000 vcoins.`,
                             ephemeral: false
                         });
                     }
                 } catch (error) {
                     console.error("Erreur lors du vol:", error);
-                    await handleError(interaction, error);
+                    await interaction.followUp({
+                        content: "❌ Une erreur est survenue pendant le vol",
+                        ephemeral: true
+                    });
                 }
             }, 60000);
 
         } catch (error) {
             console.error("Erreur dans la commande voler:", error);
-            await handleError(interaction, error);
+            await interaction.reply({
+                content: "❌ Erreur lors du traitement de la commande",
+                ephemeral: true
+            });
         }
     }
 };
