@@ -45,6 +45,8 @@ module.exports = async (bot, interaction) => {
                     await startBucheronMiniGame(interaction, userId, config);
                 } else if (metier === "CAMIONNEUR") {
                     await startCamionneurMiniGame(interaction, userId, config);
+                } else if (metier === "PETROLIER") {
+                    await startPetrolierMiniGame(interaction, userId, config);
                 } else {
                     const earnings = Math.floor(Math.random() * (config.gainMax - config.gainMin + 1)) + config.gainMin;
                     updateUserBalance(userId, earnings);
@@ -429,5 +431,126 @@ async function startCamionneurMiniGame(interaction, userId, config) {
             content: "❌ Le système de livraison a rencontré une erreur", 
             ephemeral: true 
         });
+    }
+}
+
+async function startPetrolierMiniGame(interaction, userId, config) {
+    try {
+        const GAUGE_MAX = 100;
+        const GAUGE_DANGER_ZONE = 80;
+        const GAUGE_CRITICAL_ZONE = 95; 
+        const DURATION = 15000; 
+
+        let currentGauge = 0;
+        let isExploded = false;
+        let leaks = 0;
+        let bonusMultiplier = 1.0;
+        let lastActionTime = Date.now();
+
+        const randomEvents = [
+            { name: "🛠️ **Pompe optimisée**", effect: () => bonusMultiplier += 0.2, prob: 0.1 },
+            { name: "💸 **Prix du baril en hausse**", effect: () => bonusMultiplier += 0.3, prob: 0.05 },
+            { name: "🔧 **Fuite mineure**", effect: () => { leaks++; currentGauge -= 10; }, prob: 0.2 },
+            { name: "⚠️ **Surchauffe**", effect: () => currentGauge += 15, prob: 0.15 }
+        ];
+
+        const createGaugeEmbed = () => {
+            const gaugeVisual = 
+                `[${'▰'.repeat(Math.floor(currentGauge / 5))}${'▱'.repeat(20 - Math.floor(currentGauge / 5))}] ${currentGauge}%` +
+                (currentGauge >= GAUGE_CRITICAL_ZONE ? "\n**DANGER : RISQUE D'EXPLOSION !** 💥" : 
+                 currentGauge >= GAUGE_DANGER_ZONE ? "\n**Attention : pression élevée** ⚠️" : "");
+
+            return new EmbedBuilder()
+                .setColor(currentGauge >= GAUGE_CRITICAL_ZONE ? '#FF0000' : '#FFD700')
+                .setTitle('⛽ **Pétrolier - Course au Baril**')
+                .setDescription(`Remplissez le tonneau sans dépasser ${GAUGE_MAX}% !\n${gaugeVisual}`)
+                .addFields(
+                    { name: 'Multiplicateur', value: `x${bonusMultiplier.toFixed(1)}`, inline: true },
+                    { name: 'Fuites', value: `${leaks}`, inline: true },
+                    { name: 'Temps restant', value: `${Math.ceil((DURATION - (Date.now() - lastActionTime)) / 1000)}s`, inline: true }
+                );
+        };
+
+        const actionRow = new ActionRowBuilder().addComponents(
+            new ButtonBuilder()
+                .setCustomId('pump_oil')
+                .setLabel('POMPER (+10%)')
+                .setEmoji('⛽')
+                .setStyle(ButtonStyle.Primary),
+            new ButtonBuilder()
+                .setCustomId('stabilize')
+                .setLabel('STABILISER (-5%)')
+                .setEmoji('🛠️')
+                .setStyle(ButtonStyle.Secondary)
+        );
+
+        const gameMessage = await interaction.reply({
+            embeds: [createGaugeEmbed()],
+            components: [actionRow],
+            fetchReply: true,
+            ephemeral: true
+        });
+
+        const collector = gameMessage.createMessageComponentCollector({ time: DURATION });
+
+        collector.on('collect', async i => {
+            if (i.customId === 'pump_oil') {
+                currentGauge += 10;
+                if (currentGauge >= GAUGE_CRITICAL_ZONE) {
+                    isExploded = true;
+                    collector.stop();
+                }
+            } else if (i.customId === 'stabilize') {
+                currentGauge = Math.max(0, currentGauge - 5);
+            }
+
+            if (Math.random() < 0.2) {
+                const event = randomEvents.find(e => Math.random() < e.prob);
+                if (event) {
+                    event.effect();
+                    await i.followUp({
+                        content: `**Événement :** ${event.name}`,
+                        ephemeral: true
+                    });
+                }
+            }
+
+            await i.update({ embeds: [createGaugeEmbed()] });
+            lastActionTime = Date.now();
+        });
+
+        collector.on('end', async () => {
+            let earnings = 0;
+            let resultMessage;
+
+            if (isExploded) {
+                resultMessage = '💥 **EXPLOSION !** Le tonneau a pris feu... Gain réduit !';
+                earnings = Math.floor(config.gainMin * 0.5 * bonusMultiplier);
+            } else if (currentGauge >= GAUGE_MAX) {
+                resultMessage = '⚠️ **Dépassement !** Fuite de pétrole...';
+                earnings = Math.floor((config.gainMin + (currentGauge / 2)) * bonusMultiplier);
+            } else {
+                resultMessage = '✅ **Mission accomplie !** Livraison réussie.';
+                earnings = Math.floor((config.gainMin + currentGauge) * bonusMultiplier);
+            }
+
+            updateUserBalance(userId, earnings);
+            setCooldown(userId, 'global_work', GLOBAL_WORK_COOLDOWN);
+
+            const resultEmbed = new EmbedBuilder()
+                .setColor(isExploded ? '#FF0000' : '#4CAF50')
+                .setTitle(resultMessage)
+                .setDescription(`**Gain final :** ${earnings}vcoins (x${bonusMultiplier.toFixed(1)})`)
+                .addFields(
+                    { name: 'Niveau de remplissage', value: `${currentGauge}%`, inline: true },
+                    { name: 'Prochaine mission', value: `<t:${Math.floor((Date.now() + GLOBAL_WORK_COOLDOWN) / 1000)}:R>`, inline: true }
+                );
+
+            await interaction.followUp({ embeds: [resultEmbed], ephemeral: true });
+        });
+
+    } catch (error) {
+        console.error("Erreur dans le mini-jeu pétrolier:", error);
+        await interaction.followUp({ content: "❌ Erreur dans la plateforme pétrolière...", ephemeral: true });
     }
 }
