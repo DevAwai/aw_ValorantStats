@@ -435,122 +435,155 @@ async function startCamionneurMiniGame(interaction, userId, config) {
 }
 
 async function startPetrolierMiniGame(interaction, userId, config) {
+    const gameConfig = {
+        maxGauge: 100,
+        dangerZone: 80,
+        criticalZone: 95,
+        duration: 20000, 
+        pumpIncrement: 8,
+        stabilizeDecrement: 5
+    };
+
+    let gameState = {
+        gauge: 0,
+        exploded: false,
+        leaks: 0,
+        multiplier: 1.0,
+        active: true
+    };
+
+    const createGameEmbed = () => {
+        const gaugeBar = '▰'.repeat(Math.floor(gameState.gauge / 5)) + '▱'.repeat(20 - Math.floor(gameState.gauge / 5));
+        
+        return new EmbedBuilder()
+            .setColor(gameState.exploded ? '#FF0000' : 
+                     gameState.gauge >= gameConfig.criticalZone ? '#FFA500' : '#4CAF50')
+            .setTitle('⛽ Raffinerie Pétrolière')
+            .setDescription([
+                `**Niveau du réservoir:** ${gameState.gauge}%`,
+                `[${gaugeBar}]`,
+                gameState.gauge >= gameConfig.criticalZone ? '**DANGER CRITIQUE** ⚠️' : ''
+            ].join('\n'))
+            .addFields(
+                { name: 'Multiplicateur', value: `x${gameState.multiplier.toFixed(1)}`, inline: true },
+                { name: 'Fuites', value: gameState.leaks.toString(), inline: true }
+            );
+    };
+
+    const actionRow = new ActionRowBuilder().addComponents(
+        new ButtonBuilder()
+            .setCustomId('petrolier_pump')
+            .setLabel('POMPER')
+            .setEmoji('⛽')
+            .setStyle(ButtonStyle.Primary),
+        new ButtonBuilder()
+            .setCustomId('petrolier_stabilize')
+            .setLabel('STABILISER')
+            .setEmoji('🛠️')
+            .setStyle(ButtonStyle.Secondary)
+    );
+
     try {
-        const GAUGE_MAX = 100;
-        const GAUGE_DANGER_ZONE = 80;
-        const GAUGE_CRITICAL_ZONE = 95; 
-        const DURATION = 15000; 
-
-        let currentGauge = 0;
-        let isExploded = false;
-        let leaks = 0;
-        let bonusMultiplier = 1.0;
-        let lastActionTime = Date.now();
-
-        const randomEvents = [
-            { name: "🛠️ **Pompe optimisée**", effect: () => bonusMultiplier += 0.2, prob: 0.1 },
-            { name: "💸 **Prix du baril en hausse**", effect: () => bonusMultiplier += 0.3, prob: 0.05 },
-            { name: "🔧 **Fuite mineure**", effect: () => { leaks++; currentGauge -= 10; }, prob: 0.2 },
-            { name: "⚠️ **Surchauffe**", effect: () => currentGauge += 15, prob: 0.15 }
-        ];
-
-        const createGaugeEmbed = () => {
-            const gaugeVisual = 
-                `[${'▰'.repeat(Math.floor(currentGauge / 5))}${'▱'.repeat(20 - Math.floor(currentGauge / 5))}] ${currentGauge}%` +
-                (currentGauge >= GAUGE_CRITICAL_ZONE ? "\n**DANGER : RISQUE D'EXPLOSION !** 💥" : 
-                 currentGauge >= GAUGE_DANGER_ZONE ? "\n**Attention : pression élevée** ⚠️" : "");
-
-            return new EmbedBuilder()
-                .setColor(currentGauge >= GAUGE_CRITICAL_ZONE ? '#FF0000' : '#FFD700')
-                .setTitle('⛽ **Pétrolier - Course au Baril**')
-                .setDescription(`Remplissez le tonneau sans dépasser ${GAUGE_MAX}% !\n${gaugeVisual}`)
-                .addFields(
-                    { name: 'Multiplicateur', value: `x${bonusMultiplier.toFixed(1)}`, inline: true },
-                    { name: 'Fuites', value: `${leaks}`, inline: true },
-                    { name: 'Temps restant', value: `${Math.ceil((DURATION - (Date.now() - lastActionTime)) / 1000)}s`, inline: true }
-                );
-        };
-
-        const actionRow = new ActionRowBuilder().addComponents(
-            new ButtonBuilder()
-                .setCustomId('pump_oil')
-                .setLabel('POMPER (+10%)')
-                .setEmoji('⛽')
-                .setStyle(ButtonStyle.Primary),
-            new ButtonBuilder()
-                .setCustomId('stabilize')
-                .setLabel('STABILISER (-5%)')
-                .setEmoji('🛠️')
-                .setStyle(ButtonStyle.Secondary)
-        );
-
-        const gameMessage = await interaction.reply({
-            embeds: [createGaugeEmbed()],
+        const message = await interaction.reply({
+            embeds: [createGameEmbed()],
             components: [actionRow],
             fetchReply: true,
             ephemeral: true
         });
 
-        const collector = gameMessage.createMessageComponentCollector({ time: DURATION });
+        const collector = message.createMessageComponentCollector({
+            filter: i => i.user.id === userId,
+            time: gameConfig.duration
+        });
 
         collector.on('collect', async i => {
-            if (i.customId === 'pump_oil') {
-                currentGauge += 10;
-                if (currentGauge >= GAUGE_CRITICAL_ZONE) {
-                    isExploded = true;
-                    collector.stop();
-                }
-            } else if (i.customId === 'stabilize') {
-                currentGauge = Math.max(0, currentGauge - 5);
-            }
+            if (!gameState.active) return;
 
-            if (Math.random() < 0.2) {
-                const event = randomEvents.find(e => Math.random() < e.prob);
-                if (event) {
-                    event.effect();
-                    await i.followUp({
-                        content: `**Événement :** ${event.name}`,
-                        ephemeral: true
-                    });
+            try {
+                if (i.customId === 'petrolier_pump') {
+                    gameState.gauge += gameConfig.pumpIncrement;
+                    
+                    if (gameState.gauge >= gameConfig.maxGauge) {
+                        gameState.exploded = true;
+                        gameState.active = false;
+                    }
+                    
+                    if (Math.random() < 0.15) {
+                        gameState.multiplier += 0.1;
+                        await i.followUp({
+                            content: 'Bonus: Rendement amélioré (+0.1x)',
+                            ephemeral: true
+                        });
+                    }
+                } 
+                else if (i.customId === 'petrolier_stabilize') {
+                    gameState.gauge = Math.max(0, gameState.gauge - gameConfig.stabilizeDecrement);
+                    
+                    if (Math.random() < 0.1) {
+                        gameState.leaks++;
+                        gameState.gauge -= 5;
+                        await i.followUp({
+                            content: 'Alerte: Fuite détectée! (-5%)',
+                            ephemeral: true
+                        });
+                    }
+                }
+
+                await i.update({
+                    embeds: [createGameEmbed()],
+                    components: gameState.active ? [actionRow] : []
+                });
+
+            } catch (error) {
+                console.error('Erreur interaction:', error);
+                if (!i.replied) {
+                    await i.reply({ 
+                        content: 'Erreur lors du traitement', 
+                        ephemeral: true 
+                    }).catch(console.error);
                 }
             }
-
-            await i.update({ embeds: [createGaugeEmbed()] });
-            lastActionTime = Date.now();
         });
 
         collector.on('end', async () => {
-            let earnings = 0;
-            let resultMessage;
-
-            if (isExploded) {
-                resultMessage = '💥 **EXPLOSION !** Le tonneau a pris feu... Gain réduit !';
-                earnings = Math.floor(config.gainMin * 0.5 * bonusMultiplier);
-            } else if (currentGauge >= GAUGE_MAX) {
-                resultMessage = '⚠️ **Dépassement !** Fuite de pétrole...';
-                earnings = Math.floor((config.gainMin + (currentGauge / 2)) * bonusMultiplier);
+            gameState.active = false;
+            
+            let earnings;
+            if (gameState.exploded) {
+                earnings = Math.floor(config.gainMin * 0.3 * gameState.multiplier);
+            } else if (gameState.gauge >= gameConfig.dangerZone) {
+                earnings = Math.floor(
+                    (config.gainMin + (gameState.gauge - gameConfig.dangerZone)) * gameState.multiplier
+                );
             } else {
-                resultMessage = '✅ **Mission accomplie !** Livraison réussie.';
-                earnings = Math.floor((config.gainMin + currentGauge) * bonusMultiplier);
+                earnings = Math.floor(config.gainMin * gameState.multiplier);
             }
 
             updateUserBalance(userId, earnings);
             setCooldown(userId, 'global_work', GLOBAL_WORK_COOLDOWN);
 
             const resultEmbed = new EmbedBuilder()
-                .setColor(isExploded ? '#FF0000' : '#4CAF50')
-                .setTitle(resultMessage)
-                .setDescription(`**Gain final :** ${earnings}vcoins (x${bonusMultiplier.toFixed(1)})`)
+                .setColor(gameState.exploded ? '#FF0000' : '#4CAF50')
+                .setTitle(gameState.exploded ? '💥 Explosion!' : '✅ Mission accomplie')
+                .setDescription(`Gains: ${earnings} vcoins`)
                 .addFields(
-                    { name: 'Niveau de remplissage', value: `${currentGauge}%`, inline: true },
-                    { name: 'Prochaine mission', value: `<t:${Math.floor((Date.now() + GLOBAL_WORK_COOLDOWN) / 1000)}:R>`, inline: true }
+                    { name: 'Niveau final', value: `${gameState.gauge}%`, inline: true },
+                    { name: 'Multiplicateur', value: `x${gameState.multiplier.toFixed(1)}`, inline: true }
                 );
 
-            await interaction.followUp({ embeds: [resultEmbed], ephemeral: true });
+            await interaction.editReply({
+                embeds: [resultEmbed],
+                components: []
+            });
         });
 
     } catch (error) {
-        console.error("Erreur dans le mini-jeu pétrolier:", error);
-        await interaction.followUp({ content: "❌ Erreur dans la plateforme pétrolière...", ephemeral: true });
+        console.error('Erreur initiale:', error);
+        if (!interaction.replied) {
+            await interaction.reply({
+                content: '❌ Le système pétrolier a rencontré une erreur',
+                ephemeral: true
+            });
+        }
     }
 }
