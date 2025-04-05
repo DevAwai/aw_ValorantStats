@@ -58,13 +58,24 @@ module.exports = {
                         }
 
                         const victim = eligiblePlayers[Math.floor(Math.random() * eligiblePlayers.length)];
-                        const stolenAmount = Math.floor(Math.random() * 5000) + 1;
+                        const hasAntivol = playerCompetencies[victim.id]?.antivol?.count > 0;
+                        
+                        if (hasAntivol) {
+                            playerCompetencies[victim.id].antivol.count--;
+                            fs.writeFileSync(competenciesPath, JSON.stringify(playerCompetencies));
+                            
+                            return await interaction.followUp({
+                                content: `🛡️ **${victim.username}** était protégé par un Antivol! (Il lui en reste ${playerCompetencies[victim.id].antivol.count})`,
+                                ephemeral: false
+                            });
+                        }
 
+                        const stolenAmount = Math.floor(Math.random() * 5000) + 1;
                         updateUserBalance(victim.id, -stolenAmount);
                         updateUserBalance(userId, stolenAmount);
 
                         await interaction.followUp({
-                            content: `🔴 **${user.username}** a réussi son vol et a dérobé ${stolenAmount} vcoins!`,
+                            content: `🔴 **${user.username}** a réussi son vol et a dérobé ${stolenAmount} vcoins à ${victim.username}!`,
                             ephemeral: false
                         });
                     } else {

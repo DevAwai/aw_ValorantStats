@@ -39,6 +39,7 @@ module.exports = {
                 const emojis = {
                     voleur: '🕵️‍♂️',
                     travailleur: '💼',
+                    antivol: '🛡️',
                     default: '🔹'
                 };
 
@@ -46,6 +47,16 @@ module.exports = {
                      .addFields(
                          competences.map(comp => {
                              const compLower = comp.toLowerCase();
+                             
+                             if (compLower === 'antivol') {
+                                 const antivolCount = playerCompetencies[userId]?.antivol?.count || 0;
+                                 return {
+                                     name: `${emojis.antivol} ${comp}`,
+                                     value: `Protections restantes: ${antivolCount}/3`,
+                                     inline: false
+                                 };
+                             }
+                             
                              return {
                                  name: `${emojis[compLower] || emojis.default} ${comp}`,
                                  value: '\u200B',

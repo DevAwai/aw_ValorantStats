@@ -15,7 +15,11 @@ function saveCompetencies() {
 
 const AVAILABLE_COMPETENCIES = {
     "Voleur": { price: 10000 },
-    "Travailleur": { price: 8000 }
+    "Travailleur": { price: 8000 },
+    "Antivol": { 
+        price: 10000,
+        max: 3 
+    }
 };
 
 module.exports = {
@@ -58,6 +62,44 @@ module.exports = {
                 playerCompetencies[userId] = [];
             }
 
+            if (competenceName === "Antivol") {
+                const currentAntivol = playerCompetencies[userId]?.antivol?.count || 0;
+                
+                if (currentAntivol >= 3) {
+                    return interaction.reply({ 
+                        content: "❌ Vous avez déjà le maximum d'Antivols (3)!", 
+                        ephemeral: true 
+                    });
+                }
+
+                if (!playerCompetencies[userId].antivol) {
+                    playerCompetencies[userId].antivol = { count: 0 };
+                }
+                
+                const userBalance = getUserBalance(userId);
+                if (userBalance < competPrice) {
+                    return interaction.reply({ 
+                        content: `❌ Vous n'avez pas assez de vcoins! Il vous faut ${competPrice} vcoins.`, 
+                        ephemeral: true 
+                    });
+                }
+
+                updateUserBalance(userId, -competPrice);
+                playerCompetencies[userId].antivol.count++;
+                playerCompetencies[userId].antivol.lastPurchase = new Date().toISOString();
+                
+                if (!playerCompetencies[userId].includes("Antivol")) {
+                    playerCompetencies[userId].push("Antivol");
+                }
+                
+                saveCompetencies();
+
+                return interaction.reply({ 
+                    content: `✅ Achat réussi! Vous avez acquis une protection Antivol (${playerCompetencies[userId].antivol.count}/3) pour **${competPrice} vcoins**.`,
+                    ephemeral: true
+                });
+            }
+
             const alreadyOwned = playerCompetencies[userId].some(
                 comp => comp.toLowerCase() === competenceName.toLowerCase()
             );
@@ -70,7 +112,6 @@ module.exports = {
             }
 
             const userBalance = getUserBalance(userId);
-
             if (userBalance < competPrice) {
                 return interaction.reply({ 
                     content: `❌ Vous n'avez pas assez de vcoins! Il vous faut ${competPrice} vcoins.`, 
