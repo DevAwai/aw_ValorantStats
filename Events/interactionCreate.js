@@ -302,7 +302,7 @@ async function startBucheronMiniGame(interaction, userId, config) {
 
 async function startCamionneurMiniGame(interaction, userId, config) {
     const gameConfig = {
-        duration: 30000,
+        duration: 30000, 
         baseEarnings: Math.floor(Math.random() * (config.gainMax - config.gainMin + 1)) + config.gainMin,
         destinations: [
             { name: "Daronne à Morai", emoji: "🐩", distance: 10 },
@@ -350,20 +350,20 @@ async function startCamionneurMiniGame(interaction, userId, config) {
         updateUserBalance(userId, earnings);
         setCooldown(userId, 'global_work', GLOBAL_WORK_COOLDOWN);
 
-        await gameState.message.edit({
-            embeds: [
-                new EmbedBuilder()
-                    .setColor(success ? '#4CAF50' : '#FF0000')
-                    .setTitle(success ? '✅ LIVRAISON RÉUSSIE' : '❌ TEMPS ÉCOULÉ')
-                    .setDescription(`**${gameState.destination.name}** ${gameState.destination.emoji}`)
-                    .addFields(
-                        { name: 'Statut', value: success ? 'Mission accomplie' : 'Livraison partielle', inline: true },
-                        { name: 'Gagné', value: `${earnings}vcoins`, inline: true },
-                        { name: 'Nouveau solde', value: `${getUserBalance(userId)}vcoins`, inline: false },
-                        { name: 'Prochaine course', value: `<t:${Math.floor((Date.now() + GLOBAL_WORK_COOLDOWN)/1000)}:R>`, inline: false }
-                    )
-            ],
-            components: []
+        const resultEmbed = new EmbedBuilder()
+            .setColor(success ? '#4CAF50' : '#FF0000')
+            .setTitle(success ? '✅ LIVRAISON RÉUSSIE' : '❌ TEMPS ÉCOULÉ')
+            .setDescription(`**${gameState.destination.name}** ${gameState.destination.emoji}`)
+            .addFields(
+                { name: 'Statut', value: success ? 'Mission accomplie' : 'Livraison partielle', inline: true },
+                { name: 'Gagné', value: `${earnings}vcoins`, inline: true },
+                { name: 'Nouveau solde', value: `${getUserBalance(userId)}vcoins`, inline: false },
+                { name: 'Prochaine course', value: `<t:${Math.floor((Date.now() + GLOBAL_WORK_COOLDOWN)/1000)}:R>`, inline: false }
+            );
+
+        await interaction.followUp({
+            embeds: [resultEmbed],
+            ephemeral: true
         });
     };
 
@@ -377,8 +377,7 @@ async function startCamionneurMiniGame(interaction, userId, config) {
                     .setEmoji('⏩')
                     .setStyle(ButtonStyle.Primary)
             )],
-            fetchReply: true,
-            ephemeral: true
+            fetchReply: true
         });
 
         const collector = gameState.message.createMessageComponentCollector({ 
