@@ -301,8 +301,9 @@ async function startBucheronMiniGame(interaction, userId, config) {
 }
 
 async function startCamionneurMiniGame(interaction, userId, config) {
+    const GLOBAL_WORK_COOLDOWN = 60 * 1000;
     const gameConfig = {
-        duration: 30000, 
+        duration: 30000,
         baseEarnings: Math.floor(Math.random() * (config.gainMax - config.gainMin + 1)) + config.gainMin,
         destinations: [
             { name: "Daronne à Morai", emoji: "🐩", distance: 10 },
@@ -321,12 +322,6 @@ async function startCamionneurMiniGame(interaction, userId, config) {
         completed: false
     };
 
-    const createRouteVisual = () => {
-        const segments = 20;
-        const filled = Math.min(segments, Math.floor((gameState.progress / gameState.destination.distance) * segments));
-        return `[DÉPART] ${'▬'.repeat(filled)}🚛${'▬'.repeat(segments - filled)} ${gameState.destination.emoji} [ARRIVÉE]`;
-    };
-
     const createMainEmbed = () => {
         const timeLeft = Math.max(0, gameState.startTime + gameConfig.duration - Date.now());
         return new EmbedBuilder()
@@ -335,17 +330,28 @@ async function startCamionneurMiniGame(interaction, userId, config) {
             .setDescription(`**${gameState.destination.name}** ${gameState.destination.emoji}\n${createRouteVisual()}`)
             .addFields(
                 { name: 'Temps', value: `${Math.ceil(timeLeft/1000)}s`, inline: true },
-                { name: 'Progression', value: `${Math.min(100, Math.floor((gameState.progress/gameState.destination.distance)*100))}%`, inline: true },
-                { name: 'Gain', value: `${gameConfig.baseEarnings}vcoins`, inline: true }
+                { name: 'Progression', value: `${Math.min(100, Math.floor((gameState.progress/gameState.destination.distance)*100))}%`, inline: true }
             );
     };
 
-    const createSuccessEmbed = (earnings) => {
+    const createRouteVisual = () => {
+        const segments = 20;
+        const filled = Math.min(segments, Math.floor((gameState.progress / gameState.destination.distance) * segments));
+        return `[DÉPART] ${'▬'.repeat(filled)}🚛${'▬'.repeat(segments - filled)} ${gameState.destination.emoji} [ARRIVÉE]`;
+    };
+
+    const createResultEmbed = (success, earnings) => {
         return new EmbedBuilder()
-            .setColor('#4CAF50')
-            .setTitle('🎉 LIVRAISON RÉUSSIE !')
-            .setDescription(`**+${earnings}vcoins** ajoutés à votre solde !`)
-            .setFooter({ text: 'Préparation de la prochaine livraison...' });
+            .setColor(success ? '#4CAF50' : '#FF0000')
+            .setTitle(success ? '✅ LIVRAISON RÉUSSIE' : '❌ LIVRAISON INCOMPLÈTE')
+            .setDescription(`**${gameState.destination.name}** ${gameState.destination.emoji}`)
+            .addFields(
+                { name: 'Statut', value: success ? 'Mission accomplie !' : 'Temps écoulé', inline: true },
+                { name: 'Gagné', value: `${earnings}vcoins`, inline: true },
+                { name: 'Nouveau solde', value: `${getUserBalance(userId)}vcoins`, inline: false },
+                { name: 'Prochaine course', value: `<t:${Math.floor((Date.now() + GLOBAL_WORK_COOLDOWN)/1000)}:R>`, inline: false }
+            )
+            .setImage(success ? 'https://i.imgur.com/JKv0W2A.gif' : 'https://i.imgur.com/3VQ5XQx.gif');
     };
 
     const endGame = async (success) => {
@@ -358,28 +364,19 @@ async function startCamionneurMiniGame(interaction, userId, config) {
         updateUserBalance(userId, earnings);
         setCooldown(userId, 'global_work', GLOBAL_WORK_COOLDOWN);
 
-        if (success) {
-            await gameState.message.edit({
-                embeds: [createSuccessEmbed(earnings)],
-                components: []
-            });
-            await new Promise(resolve => setTimeout(resolve, 1000));
-        }
-
-        const resultEmbed = new EmbedBuilder()
-            .setColor('#FFA500')
-            .setTitle('🚚 LIVRAISON EXPRESS')
-            .setDescription(success 
-                ? `Livraison à ${gameState.destination.name} complétée !`
-                : `Livraison partielle à ${gameState.destination.name}`)
-            .addFields(
-                { name: 'Gagné', value: `${earnings}vcoins`, inline: true },
-                { name: 'Nouveau solde', value: `${getUserBalance(userId)}vcoins`, inline: true },
-                { name: 'Prochaine course', value: `<t:${Math.floor((Date.now() + GLOBAL_WORK_COOLDOWN)/1000)}:R>`, inline: false }
-            );
-
         await gameState.message.edit({
-            embeds: [resultEmbed],
+            embeds: [new EmbedBuilder()
+                .setColor('#4CAF50')
+                .setTitle('🎉 +' + earnings + 'vcoins !')
+                .setDescription('Chargement de la prochaine livraison...')
+                .setThumbnail('https://i.imgur.com/JKv0W2A.gif')
+            ],
+            components: []
+        });
+
+        await new Promise(resolve => setTimeout(resolve, 1500));
+        await gameState.message.edit({
+            embeds: [createResultEmbed(success, earnings)],
             components: []
         });
     };
@@ -407,9 +404,10 @@ async function startCamionneurMiniGame(interaction, userId, config) {
             
             gameState.progress += gameConfig.progressPerClick + (Math.random() * 0.5);
             
-            if (gameState.progress >= gameState.destination.distance && !gameState.completed) {
-                endGame(true);
+            if (gameState.progress >= gameState.destination.distance) {
+                await endGame(true);
                 collector.stop();
+                return;
             }
 
             try {
@@ -436,15 +434,18 @@ async function startCamionneurMiniGame(interaction, userId, config) {
         });
 
         setTimeout(() => {
-            if (gameState.active && !gameState.completed) {
-                collector.stop();
-            }
+            if (gameState.active) collector.stop();
         }, gameConfig.duration);
 
     } catch (error) {
-        console.error("Erreur initiale:", error);
+        console.error("Erreur:", error);
         await interaction.followUp({ 
-            content: "❌ Le système de livraison a rencontré une erreur", 
+            embeds: [
+                new EmbedBuilder()
+                    .setColor('#FF0000')
+                    .setTitle('❌ ERREUR SYSTÈME')
+                    .setDescription('Le système de livraison a rencontré un problème')
+            ],
             ephemeral: true 
         });
     }
