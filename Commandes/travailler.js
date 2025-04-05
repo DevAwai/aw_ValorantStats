@@ -15,13 +15,18 @@ module.exports = {
 
             let playerCompetencies = {};
             try {
-                playerCompetencies = JSON.parse(fs.readFileSync(competenciesPath, 'utf8'));
+                const data = fs.readFileSync(competenciesPath, 'utf8');
+                playerCompetencies = JSON.parse(data);
             } catch (error) {
                 console.error("Erreur lecture competencies.json:", error);
                 playerCompetencies = {};
             }
 
-            if (!playerCompetencies[userId]?.includes("Travailleur")) {
+            const hasCompetence = playerCompetencies[userId] && 
+                                Array.isArray(playerCompetencies[userId]) && 
+                                playerCompetencies[userId].includes("Travailleur");
+
+            if (!hasCompetence) {
                 return await interaction.reply({
                     content: "❌ Vous devez acheter la compétence 'Travailleur' pour travailler!",
                     ephemeral: true
