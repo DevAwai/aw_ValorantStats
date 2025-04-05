@@ -301,9 +301,8 @@ async function startBucheronMiniGame(interaction, userId, config) {
 }
 
 async function startCamionneurMiniGame(interaction, userId, config) {
-    const GLOBAL_WORK_COOLDOWN = 60 * 1000;
     const gameConfig = {
-        duration: 30000,
+        duration: 30000, 
         baseEarnings: Math.floor(Math.random() * (config.gainMax - config.gainMin + 1)) + config.gainMin,
         destinations: [
             { name: "Daronne à Morai", emoji: "🐩", distance: 10 },
@@ -330,7 +329,8 @@ async function startCamionneurMiniGame(interaction, userId, config) {
             .setDescription(`**${gameState.destination.name}** ${gameState.destination.emoji}\n${createRouteVisual()}`)
             .addFields(
                 { name: 'Temps', value: `${Math.ceil(timeLeft/1000)}s`, inline: true },
-                { name: 'Progression', value: `${Math.min(100, Math.floor((gameState.progress/gameState.destination.distance)*100))}%`, inline: true }
+                { name: 'Progression', value: `${Math.min(100, Math.floor((gameState.progress/gameState.destination.distance)*100))}%`, inline: true },
+                { name: 'Gain possible', value: `${gameConfig.baseEarnings}vcoins`, inline: true }
             );
     };
 
@@ -340,18 +340,17 @@ async function startCamionneurMiniGame(interaction, userId, config) {
         return `[DÉPART] ${'▬'.repeat(filled)}🚛${'▬'.repeat(segments - filled)} ${gameState.destination.emoji} [ARRIVÉE]`;
     };
 
-    const createResultEmbed = (success, earnings) => {
-        return new EmbedBuilder()
-            .setColor(success ? '#4CAF50' : '#FF0000')
-            .setTitle(success ? '✅ LIVRAISON RÉUSSIE' : '❌ LIVRAISON INCOMPLÈTE')
-            .setDescription(`**${gameState.destination.name}** ${gameState.destination.emoji}`)
-            .addFields(
-                { name: 'Statut', value: success ? 'Mission accomplie !' : 'Temps écoulé', inline: true },
-                { name: 'Gagné', value: `${earnings}vcoins`, inline: true },
-                { name: 'Nouveau solde', value: `${getUserBalance(userId)}vcoins`, inline: false },
-                { name: 'Prochaine course', value: `<t:${Math.floor((Date.now() + GLOBAL_WORK_COOLDOWN)/1000)}:R>`, inline: false }
-            )
-            .setImage(success ? 'https://i.imgur.com/JKv0W2A.gif' : 'https://i.imgur.com/3VQ5XQx.gif');
+    const showTemporaryResult = async (earnings) => {
+        await gameState.message.edit({
+            embeds: [
+                new EmbedBuilder()
+                    .setColor('#4CAF50')
+                    .setTitle(`🎉 +${earnings}vcoins !`)
+                    .setDescription('Livraison complétée avec succès')
+            ],
+            components: []
+        });
+        await new Promise(resolve => setTimeout(resolve, 1500));
     };
 
     const endGame = async (success) => {
@@ -360,23 +359,25 @@ async function startCamionneurMiniGame(interaction, userId, config) {
         gameState.active = false;
 
         const earnings = success ? gameConfig.baseEarnings : Math.floor(gameConfig.baseEarnings * 0.3);
-        
+
         updateUserBalance(userId, earnings);
         setCooldown(userId, 'global_work', GLOBAL_WORK_COOLDOWN);
 
-        await gameState.message.edit({
-            embeds: [new EmbedBuilder()
-                .setColor('#4CAF50')
-                .setTitle('🎉 +' + earnings + 'vcoins !')
-                .setDescription('Chargement de la prochaine livraison...')
-                .setThumbnail('https://i.imgur.com/JKv0W2A.gif')
-            ],
-            components: []
-        });
+        if (success) await showTemporaryResult(earnings);
 
-        await new Promise(resolve => setTimeout(resolve, 1500));
         await gameState.message.edit({
-            embeds: [createResultEmbed(success, earnings)],
+            embeds: [
+                new EmbedBuilder()
+                    .setColor(success ? '#4CAF50' : '#FF0000')
+                    .setTitle(success ? '✅ LIVRAISON RÉUSSIE' : '❌ TEMPS ÉCOULÉ')
+                    .setDescription(`**${gameState.destination.name}** ${gameState.destination.emoji}`)
+                    .addFields(
+                        { name: 'Statut', value: success ? 'Mission accomplie' : 'Livraison partielle', inline: true },
+                        { name: 'Gagné', value: `${earnings}vcoins`, inline: true },
+                        { name: 'Nouveau solde', value: `${getUserBalance(userId)}vcoins`, inline: false },
+                        { name: 'Prochaine course', value: `<t:${Math.floor((Date.now() + GLOBAL_WORK_COOLDOWN)/1000)}:R>`, inline: false }
+                    )
+            ],
             components: []
         });
     };
@@ -387,11 +388,12 @@ async function startCamionneurMiniGame(interaction, userId, config) {
             components: [new ActionRowBuilder().addComponents(
                 new ButtonBuilder()
                     .setCustomId('drive_truck')
-                    .setLabel('POUET POUET')
+                    .setLabel('ACCÉLÉRER')
                     .setEmoji('⏩')
                     .setStyle(ButtonStyle.Primary)
             )],
-            fetchReply: true
+            fetchReply: true,
+            //ephemeral: true
         });
 
         const collector = gameState.message.createMessageComponentCollector({ 
@@ -417,7 +419,7 @@ async function startCamionneurMiniGame(interaction, userId, config) {
                     components: [new ActionRowBuilder().addComponents(
                         new ButtonBuilder()
                             .setCustomId('drive_truck')
-                            .setLabel('POUET POUET')
+                            .setLabel('ACCÉLÉRER')
                             .setEmoji('⏩')
                             .setStyle(ButtonStyle.Primary)
                     )]
@@ -440,13 +442,8 @@ async function startCamionneurMiniGame(interaction, userId, config) {
     } catch (error) {
         console.error("Erreur:", error);
         await interaction.followUp({ 
-            embeds: [
-                new EmbedBuilder()
-                    .setColor('#FF0000')
-                    .setTitle('❌ ERREUR SYSTÈME')
-                    .setDescription('Le système de livraison a rencontré un problème')
-            ],
-            ephemeral: true 
+            content: "❌ Le système de livraison a rencontré une erreur", 
+            //ephemeral: true 
         });
     }
 }
