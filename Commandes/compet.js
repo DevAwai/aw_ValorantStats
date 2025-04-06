@@ -1,4 +1,4 @@
-const { EmbedBuilder } = require('discord.js');
+const { ActionRowBuilder, EmbedBuilder, StringSelectMenuBuilder } = require('discord.js');
 const { handleError } = require("../utils/errorHandler");
 
 module.exports = {
@@ -9,20 +9,118 @@ module.exports = {
 
     async execute(interaction) {
         try {
+            const selectMenu = new StringSelectMenuBuilder()
+                .setCustomId('competence_select')
+                .setPlaceholder('Sélectionnez une compétence pour voir les détails')
+                .addOptions([
+                    {
+                        label: 'Voleur',
+                        description: 'Voler des vcoins à d\'autres joueurs',
+                        value: 'voleur',
+                        emoji: '🕵️‍♂️'
+                    },
+                    {
+                        label: 'Travailleur',
+                        description: 'Accéder à des métiers rémunérateurs',
+                        value: 'travailleur',
+                        emoji: '💼'
+                    },
+                    {
+                        label: 'Antivol',
+                        description: 'Protection contre les vols',
+                        value: 'antivol',
+                        emoji: '🛡️'
+                    }
+                ]);
+
+            const row = new ActionRowBuilder().addComponents(selectMenu);
+
             const embed = new EmbedBuilder()
                 .setColor('#0099ff')
                 .setTitle('Compétences Disponibles')
-                .setDescription('Voici les compétences que vous pouvez acheter:')
-                .addFields(
-                    { name: 'Voleur', value: '**Prix:** 10,000 vcoins (1 chance sur 10 de voler entre 1 - 5000 vcoins)' },
-                    { name: 'Travailleur', value: 'Travail sale noir' },
-                    { name: 'Antivol', value: '**Prix:** 10,000 vcoins (protection contre 1 vol, max 3)'},
-                )
-                .setTimestamp();
+                .setDescription('Sélectionnez une compétence dans le menu ci-dessous pour voir ses détails:');
 
-            await interaction.reply({ embeds: [embed] });
+            const message = await interaction.reply({ 
+                embeds: [embed], 
+                components: [row],
+                ephemeral: true,
+                fetchReply: true
+            });
+
+            const collector = message.createMessageComponentCollector({
+                filter: i => i.user.id === interaction.user.id,
+                time: 60000
+            });
+
+            collector.on('collect', async i => {
+                try {
+                    const selected = i.values[0];
+                    let detailsEmbed;
+
+                    switch(selected) {
+                        case 'voleur':
+                            detailsEmbed = new EmbedBuilder()
+                                .setColor('#FF0000')
+                                .setTitle('🕵️‍♂️ Voleur')
+                                .setDescription('Compétence de vol')
+                                .addFields(
+                                    { name: 'Prix', value: '10,000 vcoins', inline: true },
+                                    { name: 'Chance de succès', value: '1 sur 10', inline: true },
+                                    { name: 'Gain possible', value: '1-5000 vcoins par vol', inline: true }
+                                );
+                            break;
+                        
+                        case 'travailleur':
+                            detailsEmbed = new EmbedBuilder()
+                                .setColor('#FFA500')
+                                .setTitle('💼 Travailleur')
+                                .setDescription('Accès aux métiers rémunérateurs')
+                                .addFields(
+                                    { name: 'Prix', value: '15,000 vcoins', inline: true },
+                                    { name: 'Avantage', value: 'Débloque la commande /travailler', inline: true },
+                                    { name: 'Métiers disponibles', value: '5 métiers différents', inline: true }
+                                );
+                            break;
+                        
+                        case 'antivol':
+                            detailsEmbed = new EmbedBuilder()
+                                .setColor('#00FF00')
+                                .setTitle('🛡️ Antivol')
+                                .setDescription('Protection contre les voleurs')
+                                .addFields(
+                                    { name: 'Prix', value: '10,000 vcoins', inline: true },
+                                    { name: 'Protections', value: '1 protection par achat', inline: true },
+                                    { name: 'Maximum', value: '3 protections simultanées', inline: true }
+                                );
+                            break;
+                    }
+
+                    await i.update({ 
+                        embeds: [detailsEmbed], 
+                        components: [] 
+                    });
+                } catch (error) {
+                    console.error('Erreur lors du traitement de la sélection:', error);
+                    if (!i.replied && !i.deferred) {
+                        await i.reply({ 
+                            content: '❌ Une erreur est survenue lors du traitement de votre sélection', 
+                            ephemeral: true 
+                        });
+                    }
+                }
+            });
+
+            collector.on('end', (collected, reason) => {
+                if (reason === 'time') {
+                    interaction.editReply({ 
+                        content: 'Temps écoulé - sélection annulée', 
+                        components: [] 
+                    }).catch(console.error);
+                }
+            });
 
         } catch (error) {
+            console.error('Erreur dans la commande compet:', error);
             await handleError(interaction, error, "API");
         }
     }
