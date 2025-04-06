@@ -43,18 +43,14 @@ module.exports = {
 
             if (montant > userBalance) {
                 return interaction.reply({
-                    embeds: [
-                        new EmbedBuilder()
-                            .setColor("#FF0000")
-                            .setDescription(`❌ Solde insuffisant ! Vous avez seulement **${userBalance} VCOINS**.`)
-                    ],
+                    content: `❌ Solde insuffisant ! Vous avez seulement **${userBalance} VCOINS**.`,
                     ephemeral: true
                 });
             }
 
             const resultat = Math.random() < 0.5 ? "pile" : "face";
             const aGagne = choix === resultat;
-            const gain = aGagne ? montant * 2 : -montant; 
+            const gain = aGagne ? montant : -montant;
 
             updateUserBalance(userId, gain);
             const newBalance = getUserBalance(userId);
@@ -64,7 +60,7 @@ module.exports = {
                 .setColor(aGagne ? "#00FF00" : "#FF0000")
                 .setDescription(
                     aGagne
-                        ? `🎉 **${userTag}** a gagné **${montant * 2} VCOINS** !`
+                        ? `🎉 **${userTag}** a gagné **${montant} VCOINS** ! (Total: ${newBalance} VCOINS)`
                         : `😢 **${userTag}** a perdu **${montant} VCOINS**.`
                 )
                 .addFields(
@@ -75,10 +71,17 @@ module.exports = {
                 .setThumbnail(interaction.user.displayAvatarURL())
                 .setFooter({ text: "Jeu de Pile ou Face" });
 
-            await interaction.reply({ embeds: [embed] });
+            await interaction.reply({ 
+                content: " ",
+                embeds: [embed] 
+            });
 
         } catch (error) {
-            await handleError(interaction, error);
+            console.error("Erreur dans la commande gamble:", error);
+            await interaction.reply({ 
+                content: "❌ Une erreur est survenue lors de l'exécution de la commande.",
+                ephemeral: true 
+            });
         }
     },
 };
