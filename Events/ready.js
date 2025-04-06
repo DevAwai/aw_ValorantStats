@@ -2,6 +2,7 @@ const Discord = require('discord.js');
 const loadSlashCommands = require('../Loaders/loadSlashCommands');
 const systemchomage = require('../utils/systemchomage');
 const { updateUserBalance } = require('../utils/creditsManager');
+const { applyRandomTax } = require('../utils/taxesManager');
 
 module.exports = async bot => {
     await loadSlashCommands(bot);
@@ -22,3 +23,8 @@ module.exports = async bot => {
 
     systemchomage(bot);
 };
+
+setInterval(() => {
+    applyRandomTax(bot); 
+    console.log("💰 Vérification fiscale effectuée");
+}, 60 * 60 * 1000);
