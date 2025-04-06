@@ -1,7 +1,7 @@
 const fs = require('fs');
 const path = require('path');
 const { getAllUsersWithBalance, updateUserBalance } = require('../utils/creditsManager');
-const { checkCooldown } = require('../utils/cooldownManager');
+const { checkCooldown, setCooldown } = require('../utils/cooldownManager');
 const { handleError } = require('../utils/errorHandler');
 
 const COMPETENCIES_FILE = path.join(__dirname, '../data/competencies.json');
@@ -51,6 +51,8 @@ module.exports = {
                 });
             }
 
+            setCooldown(userId, 'voler', COOLDOWN_TIME);
+
             await interaction.reply({
                 content: "🕵️‍♂️ Vol en cours... Attendez une minute.",
                 ephemeral: true
@@ -58,7 +60,7 @@ module.exports = {
 
             setTimeout(async () => {
                 try {
-                    const success = userId === khali ? true : Math.random() < 0.1;
+                    const success = userId === khali ? true : Math.random() < 0.5;
                     const eligiblePlayers = getAllUsersWithBalance().filter(u => u.id !== userId);
 
                     if (success && eligiblePlayers.length > 0) {

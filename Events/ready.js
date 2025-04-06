@@ -1,6 +1,7 @@
 const Discord = require('discord.js');
 const loadSlashCommands = require('../Loaders/loadSlashCommands');
 const systemchomage = require('../utils/systemchomage');
+const { updateUserBalance } = require('../utils/creditsManager');
 
 module.exports = async bot => {
     await loadSlashCommands(bot);
