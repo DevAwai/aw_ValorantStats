@@ -9,6 +9,7 @@ const COOLDOWN_TIME = 24 * 60 * 60 * 1000;
 const khali = "663844641250213919";
 
 let playerCompetencies = {};
+let pendingSteals = new Set(); 
 
 function saveCompetencies() {
     fs.writeFileSync(COMPETENCIES_FILE, JSON.stringify(playerCompetencies, null, 2));
@@ -24,6 +25,13 @@ module.exports = {
         try {
             const { user } = interaction;
             const userId = user.id;
+
+            if (pendingSteals.has(userId)) {
+                return await interaction.reply({
+                    content: "⏳ Vous avez déjà un vol en cours! Attendez la fin de l'opération.",
+                    ephemeral: true
+                });
+            }
 
             try {
                 const data = fs.readFileSync(COMPETENCIES_FILE, 'utf8');
@@ -51,10 +59,10 @@ module.exports = {
                 });
             }
 
-            setCooldown(userId, 'voler', COOLDOWN_TIME);
+            pendingSteals.add(userId);
 
             await interaction.reply({
-                content: "🕵️‍♂️ Vol en cours... Attendez une minute.",
+                content: "🕵️‍♂️ Vol en cours... (60 secondes d'attente)",
                 ephemeral: true
             });
 
@@ -71,25 +79,23 @@ module.exports = {
                             playerCompetencies[victim.id].antivol.count--;
                             saveCompetencies();
 
-                            return await interaction.followUp({
+                            await interaction.followUp({
                                 content: `🛡️ ${victim.username} était protégé(e) par un Antivol! (${playerCompetencies[victim.id].antivol.count}/3 restants)`,
                                 ephemeral: true
                             });
+                        } else {
+                            const stolenAmount = Math.floor(Math.random() * 5000) + 1;
+                            updateUserBalance(victim.id, -stolenAmount);
+                            updateUserBalance(userId, stolenAmount);
+                            setCooldown(userId, 'voler', COOLDOWN_TIME);
+
+                            const victimUser = await interaction.client.users.fetch(victim.id);
+
+                            await interaction.followUp({
+                                content: `🔴 ${user.username} a volé ${stolenAmount} vcoins à ${victimUser.username}!`,
+                                ephemeral: false
+                            });
                         }
-
-                        const stolenAmount = Math.floor(Math.random() * 5000) + 1;
-                        updateUserBalance(victim.id, -stolenAmount);
-                        updateUserBalance(userId, stolenAmount);
-
-                        await interaction.followUp({
-                            content: `🔴 ${user.username} a volé ${stolenAmount} vcoins à ${victim.username}!`,
-                            ephemeral: false
-                        });
-
-                        await interaction.followUp({
-                            content: `✅ Tu as volé ${stolenAmount} vcoins à ${victim.username} avec succès!`,
-                            ephemeral: true
-                        });
                     } else if (success) {
                         await interaction.followUp({
                             content: "💰 Personne à voler...",
@@ -108,11 +114,14 @@ module.exports = {
                         content: "❌ Erreur pendant le vol",
                         ephemeral: true
                     });
+                } finally {
+                    pendingSteals.delete(userId);
                 }
             }, 60000);
 
         } catch (error) {
             console.error("Erreur dans la commande voler:", error);
+            pendingSteals.delete(interaction.user.id); 
             await interaction.reply({
                 content: "❌ Erreur lors du traitement de la commande",
                 ephemeral: true
