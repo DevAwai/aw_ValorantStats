@@ -6,7 +6,7 @@ const { checkCooldown } = require("../utils/cooldownManager");
 module.exports = {
     name: "gamble",
     description: "Parie sur pile ou face avec un montant",
-    cooldown: 2000,
+    cooldown: 10000,
     options: [
         {
             type: "string",
@@ -60,7 +60,7 @@ module.exports = {
                 .setColor(aGagne ? "#00FF00" : "#FF0000")
                 .setDescription(
                     aGagne
-                        ? `🎉 **${userTag}** a gagné **${montant} VCOINS** ! (Total: ${newBalance} VCOINS)`
+                        ? `🎉 **${userTag}** a gagné **${montant} VCOINS** !`
                         : `😢 **${userTag}** a perdu **${montant} VCOINS**.`
                 )
                 .addFields(
