@@ -1,11 +1,11 @@
 const { SlashCommandBuilder, EmbedBuilder } = require("discord.js");
 const { handleError } = require("../utils/errorHandler");
 const { getUserBalance, updateUserBalance, createUserIfNotExists } = require("../utils/creditsManager");
-const { checkCooldown } = require("../utils/cooldownManager");
+const { checkCooldown, setCooldown } = require("../utils/cooldownManager");
 
 module.exports = {
     name: "gamble",
-    description: "Parie sur pile ou face avec un montant",
+    description: "Parie sur pile ou face (mise: 1-10 000 VCOINS)",
     cooldown: 10000,
     options: [
         {
@@ -14,74 +14,78 @@ module.exports = {
             description: "Choisissez entre 'pile' ou 'face'",
             required: true,
             choices: [
-                { name: "Pile", value: "pile" },
-                { name: "Face", value: "face" }
+                { name: "Pile (1-10 000 VCOINS)", value: "pile" },
+                { name: "Face (1-10 000 VCOINS)", value: "face" }
             ]
         },
         {
             type: "integer",
             name: "montant",
-            description: "Le montant à parier",
+            description: "Mise (1-10 000 VCOINS)",
             required: true,
-            min_value: 1
+            min_value: 1,    
+            max_value: 10000
         },
     ],
     async execute(interaction) {
         const cooldownResult = checkCooldown(interaction.user.id, this.name, this.cooldown);
         if (cooldownResult !== true) {
-            return interaction.reply({ content: cooldownResult, ephemeral: true });
+            return interaction.reply({ 
+                content: `⏳ Attendez ${Math.ceil(cooldownResult.timeLeft/1000)}s avant de rejouer.`,
+                ephemeral: true 
+            });
         }
 
         try {
             const choix = interaction.options.getString("choix");
             const montant = interaction.options.getInteger("montant");
             const userId = interaction.user.id;
-            const userTag = interaction.user.username;
+
+            if (montant < 1 || montant > 10000) {
+                return interaction.reply({
+                    content: "❌ Mise invalide (1-10 000 VCOINS seulement)",
+                    ephemeral: true
+                });
+            }
 
             createUserIfNotExists(userId);
             const userBalance = getUserBalance(userId);
 
             if (montant > userBalance) {
                 return interaction.reply({
-                    content: `❌ Solde insuffisant ! Vous avez seulement **${userBalance} VCOINS**.`,
+                    content: `❌ Solde insuffisant ! Vous avez ${userBalance} VCOINS (mise min: 1, max: 10 000).`,
                     ephemeral: true
                 });
             }
 
-            const resultat = Math.random() < 0.5 ? "pile" : "face";
-            const aGagne = choix === resultat;
-            const gain = aGagne ? montant : -montant;
+            setCooldown(userId, this.name, this.cooldown);
 
+            const resultat = Math.random() < 0.5 ? "pile" : "face";
+            const gain = choix === resultat ? montant : -montant;
             updateUserBalance(userId, gain);
-            const newBalance = getUserBalance(userId);
 
             const embed = new EmbedBuilder()
-                .setTitle(`🎲 Pile ou Face - Résultat: ${resultat.toUpperCase()}`)
-                .setColor(aGagne ? "#00FF00" : "#FF0000")
-                .setDescription(
-                    aGagne
-                        ? `🎉 **${userTag}** a gagné **${montant} VCOINS** !`
-                        : `😢 **${userTag}** a perdu **${montant} VCOINS**.`
-                )
+                .setTitle(`🎲 ${choix.toUpperCase()} vs ${resultat.toUpperCase()}`)
+                .setColor(choix === resultat ? "#00FF00" : "#FF0000")
                 .addFields(
                     { name: "Mise", value: `${montant} VCOINS`, inline: true },
-                    { name: "Choix", value: choix, inline: true },
-                    { name: "Nouveau solde", value: `${newBalance} VCOINS`, inline: false }
+                    { name: "Résultat", value: choix === resultat ? "GAGNÉ" : "PERDU", inline: true },
+                    { name: "Nouveau solde", value: `${getUserBalance(userId)} VCOINS`, inline: false },
+                    { name: "Limites", value: "1-10 000 VCOINS", inline: false }
                 )
-                .setThumbnail(interaction.user.displayAvatarURL())
-                .setFooter({ text: "Jeu de Pile ou Face" });
+                .setFooter({ text: `Prochain jeu dans ${this.cooldown/1000}s` });
 
             await interaction.reply({ 
-                content: " ",
-                embeds: [embed] 
+                embeds: [embed],
+                ephemeral: true 
             });
 
         } catch (error) {
-            console.error("Erreur dans la commande gamble:", error);
+            console.error("Erreur:", error);
             await interaction.reply({ 
-                content: "❌ Une erreur est survenue lors de l'exécution de la commande.",
+                content: "❌ Échec de la partie",
                 ephemeral: true 
             });
         }
-    },
+    }
 };
