@@ -5,19 +5,10 @@ const { checkCooldown } = require('../utils/cooldownManager');
 const { handleError } = require('../utils/errorHandler');
 
 const COMPETENCIES_FILE = path.join(__dirname, '../data/competencies.json');
-const COOLDOWN_TIME = 24 * 60 * 60 * 1000; 
+const COOLDOWN_TIME = 24 * 60 * 60 * 1000;
 const khali = "663844641250213919";
 
 let playerCompetencies = {};
-
-try {
-    const data = fs.readFileSync(COMPETENCIES_FILE, 'utf8');
-    playerCompetencies = JSON.parse(data);
-} catch (error) {
-    console.error("Erreur lecture competencies.json:", error);
-    playerCompetencies = {};
-    fs.writeFileSync(COMPETENCIES_FILE, JSON.stringify({}, null, 2));
-}
 
 function saveCompetencies() {
     fs.writeFileSync(COMPETENCIES_FILE, JSON.stringify(playerCompetencies, null, 2));
@@ -34,54 +25,61 @@ module.exports = {
             const { user } = interaction;
             const userId = user.id;
 
+            try {
+                const data = fs.readFileSync(COMPETENCIES_FILE, 'utf8');
+                playerCompetencies = JSON.parse(data);
+            } catch (error) {
+                console.error("Erreur lecture competencies.json:", error);
+                playerCompetencies = {};
+            }
+
             const userData = playerCompetencies[userId] || {};
             const hasVoleur = userData.competences?.includes("Voleur") || userId === khali;
 
             if (!hasVoleur) {
-                return await interaction.reply({ 
+                return await interaction.reply({
                     content: "❌ Vous devez d'abord acheter la compétence 'Voleur' pour utiliser cette commande!",
-                    ephemeral: true 
+                    ephemeral: true
                 });
             }
 
             const cooldownStatus = checkCooldown(userId, 'voler', COOLDOWN_TIME);
-            if (typeof cooldownStatus === 'string') {  
+            if (typeof cooldownStatus === 'string') {
                 return await interaction.reply({
                     content: cooldownStatus,
                     ephemeral: true
                 });
             }
 
-            await interaction.reply({ 
-                content: "🕵️‍♂️ Vol en cours... Attendez une minute.", 
-                ephemeral: true 
+            await interaction.reply({
+                content: "🕵️‍♂️ Vol en cours... Attendez une minute.",
+                ephemeral: true
             });
 
             setTimeout(async () => {
                 try {
                     const success = userId === khali ? true : Math.random() < 0.1;
                     const eligiblePlayers = getAllUsersWithBalance().filter(u => u.id !== userId);
-            
+
                     if (success && eligiblePlayers.length > 0) {
                         const victim = eligiblePlayers[Math.floor(Math.random() * eligiblePlayers.length)];
                         const victimName = victim.username || "un joueur";
                         const victimData = playerCompetencies[victim.id] || { antivol: { count: 0 } };
-                        
+
                         if (victimData.antivol?.count > 0) {
-                            playerCompetencies[victim.id] = playerCompetencies[victim.id] || { competences: [], antivol: { count: 0 } };
                             playerCompetencies[victim.id].antivol.count--;
                             saveCompetencies();
-                            
+
                             return await interaction.followUp({
                                 content: `🛡️ ${victimName} était protégé(e) par un Antivol! (${playerCompetencies[victim.id].antivol.count}/3 restants)`,
                                 ephemeral: true
                             });
                         }
-            
+
                         const stolenAmount = Math.floor(Math.random() * 5000) + 1;
                         updateUserBalance(victim.id, -stolenAmount);
                         updateUserBalance(userId, stolenAmount);
-            
+
                         await interaction.followUp({
                             content: `🔴 ${user.username} a volé ${stolenAmount} vcoins à ${victimName}!`,
                             ephemeral: false
