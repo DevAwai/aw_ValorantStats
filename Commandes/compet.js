@@ -30,6 +30,12 @@ module.exports = {
                         description: 'Protection contre les vols',
                         value: 'antivol',
                         emoji: '🛡️'
+                    },
+                    {
+                        label: 'Chômeur',
+                        description: 'Gagne de la thune sans rien faire comme IRL',
+                        value: 'chomeur',
+                        emoji: '🛌'
                     }
                 ]);
 
@@ -91,6 +97,19 @@ module.exports = {
                                     { name: 'Prix', value: '10,000 vcoins', inline: true },
                                     { name: 'Protections', value: '1 protection par achat', inline: true },
                                     { name: 'Maximum', value: '3 protections simultanées', inline: true }
+                                );
+                            break;
+                            
+                        case 'chomeur':
+                            detailsEmbed = new EmbedBuilder()
+                                .setColor('#7289DA')
+                                .setTitle('🛌 Chômeur')
+                                .setDescription('Allocation de chômage régulière')
+                                .addFields(
+                                    { name: 'Prix', value: '1 vcoin (symbolique)', inline: true },
+                                    { name: 'Allocation', value: '5000 vcoins toutes les 5 minutes', inline: true },
+                                    { name: 'Condition', value: 'Doit être en ligne sur Discord', inline: true },
+                                    { name: 'Incompatibilité', value: 'Impossible avec la compétence Travailleur', inline: false }
                                 );
                             break;
                     }

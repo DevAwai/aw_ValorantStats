@@ -1,6 +1,6 @@
 const Discord = require('discord.js');
 const loadSlashCommands = require('../Loaders/loadSlashCommands');
-const { updateUserBalance } = require('../utils/creditsManager');
+const systemchomage = require('../utils/systemchomage');
 
 module.exports = async bot => {
     await loadSlashCommands(bot);
@@ -18,4 +18,6 @@ module.exports = async bot => {
             }).catch(console.error);
         }
     }, 600000);
+
+    systemchomage(bot);
 };

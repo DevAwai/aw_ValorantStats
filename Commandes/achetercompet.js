@@ -26,7 +26,8 @@ const AVAILABLE_COMPETENCIES = {
     "Antivol": { 
         price: 10000,
         max: 3 
-    }
+    },
+    "Chômeur": { price: 20000 }
 };
 
 module.exports = {
@@ -76,6 +77,24 @@ module.exports = {
                 }
                 if (!playerCompetencies[userId].antivol) {
                     playerCompetencies[userId].antivol = { count: 0 };
+                }
+            }
+
+            if (competenceName === "Chômeur") {
+                if (playerCompetencies[userId]?.competences?.includes("Travailleur")) {
+                    return interaction.reply({ 
+                        content: "❌ Vous ne pouvez pas être Chômeur si vous avez la compétence Travailleur!",
+                        ephemeral: true
+                    });
+                }
+            }
+
+            if (competenceName === "Travailleur") {
+                if (playerCompetencies[userId]?.competences?.includes("Chômeur")) {
+                    return interaction.reply({
+                        content: "❌ Vous devez d'abord abandonner votre statut de Chômeur!",
+                        ephemeral: true
+                    });
                 }
             }
 

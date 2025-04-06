@@ -39,6 +39,7 @@ module.exports = {
                     voleur: '🕵️‍♂️',
                     travailleur: '💼',
                     antivol: '🛡️',
+                    chômeur: '🛌',
                     default: '🔹'
                 };
 
@@ -48,6 +49,13 @@ module.exports = {
                         return {
                             name: `${emojis.antivol} ${comp}`,
                             value: `Protections: ${userData.antivol.count}/3`,
+                            inline: false
+                        };
+                    }
+                    if (compLower === 'chômeur') {
+                        return {
+                            name: `${emojis.chômeur} ${comp}`,
+                            value: 'Allocation: 5000 vcoins/5min (en ligne)',
                             inline: false
                         };
                     }
