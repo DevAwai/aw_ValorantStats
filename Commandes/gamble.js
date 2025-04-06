@@ -1,7 +1,7 @@
 const { SlashCommandBuilder, EmbedBuilder } = require("discord.js");
 const { handleError } = require("../utils/errorHandler");
 const { getUserBalance, updateUserBalance, createUserIfNotExists } = require("../utils/creditsManager");
-const { checkCooldown, setCooldown } = require("../utils/cooldownManager");
+const { checkCooldown, setCooldown, formatDuration } = require("../utils/cooldownManager");
 
 module.exports = {
     name: "gamble",
@@ -23,7 +23,7 @@ module.exports = {
             name: "montant",
             description: "Mise (1-10 000 VCOINS)",
             required: true,
-            min_value: 1,    
+            min_value: 1,
             max_value: 10000
         },
     ],
@@ -31,7 +31,7 @@ module.exports = {
         const cooldownResult = checkCooldown(interaction.user.id, this.name, this.cooldown);
         if (cooldownResult !== true) {
             return interaction.reply({ 
-                content: `⏳ Attendez ${Math.ceil(cooldownResult.timeLeft/1000)}s avant de rejouer.`,
+                content: `⏳ Attendez ${formatDuration(cooldownResult)} avant de rejouer.`,
                 ephemeral: true 
             });
         }
@@ -40,6 +40,7 @@ module.exports = {
             const choix = interaction.options.getString("choix");
             const montant = interaction.options.getInteger("montant");
             const userId = interaction.user.id;
+            const userTag = interaction.user.tag;
 
             if (montant < 1 || montant > 10000) {
                 return interaction.reply({
@@ -49,7 +50,7 @@ module.exports = {
             }
 
             createUserIfNotExists(userId);
-            const userBalance = getUserBalance(userId);
+            let userBalance = getUserBalance(userId);
 
             if (montant > userBalance) {
                 return interaction.reply({
@@ -64,16 +65,23 @@ module.exports = {
             const gain = choix === resultat ? montant : -montant;
             updateUserBalance(userId, gain);
 
+            const newBalance = getUserBalance(userId);
+
             const embed = new EmbedBuilder()
-                .setTitle(`🎲 ${choix.toUpperCase()} vs ${resultat.toUpperCase()}`)
+                .setTitle(`🎲 Pile ou Face - Résultat: ${resultat.toUpperCase()}`)
                 .setColor(choix === resultat ? "#00FF00" : "#FF0000")
+                .setDescription(
+                    choix === resultat
+                        ? `🎉 **${userTag}** a gagné **${montant} VCOINS** !`
+                        : `😢 **${userTag}** a perdu **${montant} VCOINS**.`
+                )
                 .addFields(
                     { name: "Mise", value: `${montant} VCOINS`, inline: true },
-                    { name: "Résultat", value: choix === resultat ? "GAGNÉ" : "PERDU", inline: true },
-                    { name: "Nouveau solde", value: `${getUserBalance(userId)} VCOINS`, inline: false },
-                    { name: "Limites", value: "1-10 000 VCOINS", inline: false }
+                    { name: "Choix", value: choix, inline: true },
+                    { name: "Nouveau solde", value: `${newBalance} VCOINS`, inline: false }
                 )
-                .setFooter({ text: `Prochain jeu dans ${this.cooldown/1000}s` });
+                .setThumbnail(interaction.user.displayAvatarURL())
+                .setFooter({ text: "Jeu de Pile ou Face" });
 
             await interaction.reply({ 
                 embeds: [embed],

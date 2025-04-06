@@ -65,7 +65,6 @@ module.exports = {
 
                     if (success && eligiblePlayers.length > 0) {
                         const victim = eligiblePlayers[Math.floor(Math.random() * eligiblePlayers.length)];
-                        const victimName = victim.username || "un joueur";
                         const victimData = playerCompetencies[victim.id] || { antivol: { count: 0 } };
 
                         if (victimData.antivol?.count > 0) {
@@ -73,7 +72,7 @@ module.exports = {
                             saveCompetencies();
 
                             return await interaction.followUp({
-                                content: `🛡️ ${victimName} était protégé(e) par un Antivol! (${playerCompetencies[victim.id].antivol.count}/3 restants)`,
+                                content: `🛡️ ${victim.username} était protégé(e) par un Antivol! (${playerCompetencies[victim.id].antivol.count}/3 restants)`,
                                 ephemeral: true
                             });
                         }
@@ -83,8 +82,13 @@ module.exports = {
                         updateUserBalance(userId, stolenAmount);
 
                         await interaction.followUp({
-                            content: `🔴 ${user.username} a volé ${stolenAmount} vcoins à ${victimName}!`,
+                            content: `🔴 ${user.username} a volé ${stolenAmount} vcoins à ${victim.username}!`,
                             ephemeral: false
+                        });
+
+                        await interaction.followUp({
+                            content: `✅ Tu as volé ${stolenAmount} vcoins à ${victim.username} avec succès!`,
+                            ephemeral: true
                         });
                     } else if (success) {
                         await interaction.followUp({
