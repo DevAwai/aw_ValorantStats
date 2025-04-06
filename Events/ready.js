@@ -2,7 +2,7 @@ const Discord = require('discord.js');
 const loadSlashCommands = require('../Loaders/loadSlashCommands');
 const systemchomage = require('../utils/systemchomage');
 const { updateUserBalance } = require('../utils/creditsManager');
-const { applyRandomTax } = require('../utils/taxesManager');
+const { applyRandomTax } = require('../utils/TaxesManager');
 
 module.exports = async bot => {
     await loadSlashCommands(bot);

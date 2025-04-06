@@ -11,6 +11,7 @@ const bot = new Discord.Client({
         Discord.IntentsBitField.Flags.Guilds,
         Discord.IntentsBitField.Flags.GuildMembers,
         Discord.IntentsBitField.Flags.GuildPresences,
+        Discord.IntentsBitField.Flags.GuildMessages,
         Discord.IntentsBitField.Flags.MessageContent
     ]
 });
