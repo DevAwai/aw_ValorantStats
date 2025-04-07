@@ -2,7 +2,7 @@ const Discord = require('discord.js');
 const loadSlashCommands = require('../Loaders/loadSlashCommands');
 const systemchomage = require('../utils/systemchomage');
 const { updateUserBalance } = require('../utils/creditsManager');
-const { applyRandomTax } = require('../utils/TaxesManager');
+const { applyRandomTax } = require('../utils/taxesManager');
 
 module.exports = async bot => {
     await loadSlashCommands(bot);
@@ -13,7 +13,7 @@ module.exports = async bot => {
         if (guild) {
             guild.members.fetch().then(members => {
                 members.forEach(member => {
-                    if (!member.user.bot && member.presence && member.presence.status !== 'offline') {
+                    if (!member.user.bot && member.presence?.status !== 'offline') {
                         updateUserBalance(member.id, 100);
                     }
                 });
@@ -22,9 +22,9 @@ module.exports = async bot => {
     }, 600000);
 
     systemchomage(bot);
-};
 
-setInterval(() => {
-    applyRandomTax(bot); 
-    console.log("💰 Vérification fiscale effectuée");
-}, 60 * 60 * 1000);
+    setInterval(() => {
+        applyRandomTax(bot); 
+        console.log("💰 Vérification fiscale effectuée");
+    }, 60 * 60 * 1000);
+};
