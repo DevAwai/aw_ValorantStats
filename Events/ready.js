@@ -23,8 +23,28 @@ module.exports = async bot => {
 
     systemchomage(bot);
 
-    setInterval(() => {
-        applyRandomTax(bot); 
-        console.log("💰 Vérification fiscale effectuée");
-    }, 60 * 60 * 1000);
+    const scheduleDailyTax = () => {
+        const now = new Date();
+        const targetTime = new Date();
+
+        targetTime.setHours(19, 0, 0, 0);
+
+        if (now > targetTime) {
+            targetTime.setDate(targetTime.getDate() + 1);
+        }
+
+        const initialDelay = targetTime - now;
+
+        setTimeout(() => {
+            applyRandomTax(bot);
+            console.log("💰 Taxation quotidienne effectuée à 19h");
+            
+            setInterval(() => {
+                applyRandomTax(bot);
+                console.log("💰 Taxation quotidienne effectuée à 19h");
+            }, 24 * 60 * 60 * 1000);
+        }, initialDelay);
+    };
+
+    scheduleDailyTax();
 };
