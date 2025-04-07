@@ -36,21 +36,41 @@ async function applyRandomTax(bot) {
 
     const taxReports = [];
     for (const user of selected) {
-        const taxAmount = Math.floor(user.balance * TAX_RATE);
-        updateUserBalance(user.id, -taxAmount);
-        
-        taxReports.push({
-            userId: user.id,
-            username: user.username,
-            amount: taxAmount,
-            date: now
-        });
-
         try {
-            const dm = await bot.users.createDM(user.id);
-            await dm.send(`💸 **Alerte fiscale !**\nVous avez été taxé de ${taxAmount} VCOINS (2% de votre solde).`);
+            const discordUser = await bot.users.fetch(user.id);
+            const username = discordUser?.username || `Joueur ${user.id.slice(0, 6)}`;
+
+            const competencies = JSON.parse(fs.readFileSync('./data/competencies.json', 'utf8'));
+            const hasOffshore = competencies[user.id]?.competences?.includes("Compte Offshore");
+
+            let taxableAmount = user.balance;
+            let protectedAmount = 0;
+
+            if (hasOffshore) {
+                protectedAmount = Math.floor(user.balance * 0.5);
+                taxableAmount = user.balance - protectedAmount;
+            }
+
+            const taxAmount = Math.floor(taxableAmount * TAX_RATE);
+            
+            if (taxAmount > 0) {
+                updateUserBalance(user.id, -taxAmount);
+                
+                taxReports.push({
+                    userId: user.id,
+                    username: username,
+                    amount: taxAmount,
+                    protected: protectedAmount
+                });
+
+                const taxMsg = hasOffshore
+                    ? `💸 **Alerte fiscale !**\nTaxé: ${taxAmount} VCOINS (2% de ${taxableAmount} VCOINS)\n🛡️ **Protection offshore**: ${protectedAmount} VCOINS sauvegardés`
+                    : `💸 **Alerte fiscale !**\nVous avez été taxé de ${taxAmount} VCOINS (2% de votre solde)`;
+
+                await discordUser.send(taxMsg).catch(() => {});
+            }
         } catch (error) {
-            console.error(`Erreur DM pour ${user.username}:`, error);
+            console.error(`Erreur taxation user ${user.id}:`, error);
         }
     }
 
@@ -60,17 +80,23 @@ async function applyRandomTax(bot) {
     });
     saveTaxData(taxData);
 
-    const taxList = taxReports.map(r => `- ${r.username}: ${r.amount} VCOINS`).join('\n');
-    const logChannel = bot.channels.cache.get('1322904141164445727');
-    if (logChannel) {
-        await logChannel.send({
-            embeds: [{
-                color: 0xFFA500,
-                title: '📊 Rapport fiscal du jour',
-                description: `Les joueurs suivants ont contribué aux finances publiques :\n${taxList}`,
-                footer: { text: `Prochaine taxation dans 24h` }
-            }]
-        });
+    if (taxReports.length > 0) {
+        const logChannel = bot.channels.cache.get('VOTRE_CHANNEL_LOG');
+        if (logChannel) {
+            const taxList = taxReports.map(r => 
+                `- ${r.username}: ${r.amount} VCOINS` + 
+                (r.protected > 0 ? ` (🛡️ ${r.protected} protégés)` : '')
+            ).join('\n');
+
+            await logChannel.send({
+                embeds: [{
+                    color: 0xFFA500,
+                    title: '📊 Rapport fiscal du jour',
+                    description: `Les joueurs suivants ont contribué :\n${taxList}`,
+                    footer: { text: `Prochaine taxation dans 24h` }
+                }]
+            });
+        }
     }
 }
 
