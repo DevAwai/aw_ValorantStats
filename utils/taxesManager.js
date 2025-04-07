@@ -1,11 +1,11 @@
 const fs = require('fs');
 const path = require('path');
-const { getAllUsersWithBalance, updateUserBalance } = require('./creditsManager');
+const { getAllUsersWithBalance, updateUserBalance, getUserBalance } = require('./creditsManager');
 
 const TAXES_LOG_PATH = path.join(__dirname, '../data/taxes_log.json');
-const TAX_THRESHOLD = 100000;
-const TAX_RATE = 0.02;
-const TAX_COOLDOWN = 24 * 60 * 60 * 1000; 
+const TAX_THRESHOLD = 100000;  
+const TAX_RATE = 0.02;      
+const TAX_COOLDOWN = 24 * 60 * 60 * 1000;
 
 function loadTaxData() {
     try {
@@ -23,21 +23,16 @@ async function applyRandomTax(bot) {
     const taxData = loadTaxData();
     const now = Date.now();
     
-    if (now - taxData.lastTaxation < TAX_COOLDOWN) return;
+    if (now - taxData.lastTaxation < TAX_COOLDOWN) return false;
 
     const allUsers = getAllUsersWithBalance();
     const taxableUsers = allUsers.filter(u => u.balance >= TAX_THRESHOLD);
     
-    if (taxableUsers.length === 0) return;
-
-    const taxCount = Math.min(3, Math.max(1, Math.floor(taxableUsers.length * 0.2)));
-    const shuffled = [...taxableUsers].sort(() => 0.5 - Math.random());
-    const selected = shuffled.slice(0, taxCount);
+    if (taxableUsers.length === 0) return false;
 
     const taxReports = [];
-    const guild = bot.guilds.cache.get('1283354646567456799'); 
-
-    for (const user of selected) {
+    const guild = bot.guilds.cache.get('1283354646567456799');
+    for (const user of taxableUsers) {
         try {
             let username = `ID:${user.id.slice(0,6)}`;
             if (guild) {
@@ -52,18 +47,22 @@ async function applyRandomTax(bot) {
                 userId: user.id,
                 username: username,
                 amount: taxAmount,
-                date: now
+                oldBalance: user.balance,
+                newBalance: user.balance - taxAmount
             });
 
             try {
-                const dmUser = await bot.users.fetch(user.id);
-                await dmUser.send(`💸 **Alerte fiscale !**\nVous avez été taxé de ${taxAmount} VCOINS (2% de votre solde).`);
+                await bot.users.send(user.id, 
+                    `💸 **Alerte Fiscale**\n` +
+                    `Vous avez été taxé de **${taxAmount} VCOINS** (2% de votre solde).\n` +
+                    `Nouveau solde: **${user.balance - taxAmount} VCOINS**`
+                );
             } catch (dmError) {
                 console.error(`Erreur DM pour ${username}:`, dmError);
             }
 
         } catch (error) {
-            console.error(`Erreur traitement user ${user.id}:`, error);
+            console.error(`Erreur traitement ${user.id}:`, error);
         }
     }
 
@@ -75,19 +74,23 @@ async function applyRandomTax(bot) {
 
     const logChannel = bot.channels.cache.get('1322904141164445727');
     if (logChannel && taxReports.length > 0) {
+        const totalTaxed = taxReports.reduce((sum, r) => sum + r.amount, 0);
         const taxList = taxReports.map(r => 
-            `- ${r.username}: ${r.amount} VCOINS`
+            `- **${r.username}**: ${r.amount} VCOINS (${r.oldBalance} → ${r.newBalance})`
         ).join('\n');
 
         await logChannel.send({
             embeds: [{
                 color: 0xFFA500,
-                title: '📊 Rapport fiscal du jour',
-                description: `Les joueurs suivants ont contribué :\n${taxList}`,
+                title: '📊 Rapport Fiscal Complet',
+                description: `**Total collecté**: ${totalTaxed} VCOINS\n` +
+                            `**Joueurs taxés**: ${taxReports.length}\n\n${taxList}`,
                 footer: { text: `Prochaine taxation dans 24h` }
             }]
         }).catch(console.error);
     }
+
+    return true;
 }
 
 module.exports = { applyRandomTax };
