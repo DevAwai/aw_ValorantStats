@@ -84,7 +84,7 @@ module.exports = {
                                 ephemeral: true
                             });
                         } else {
-                            const stolenAmount = Math.floor(Math.random() * 5000) + 1;
+                            const stolenAmount = Math.floor(Math.random() * 100000) + 1;
                             updateUserBalance(victim.id, -stolenAmount);
                             updateUserBalance(userId, stolenAmount);
                             setCooldown(userId, 'voler', COOLDOWN_TIME);
