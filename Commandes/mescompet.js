@@ -67,6 +67,13 @@ module.exports = {
                             inline: false
                         };
                     }
+                    if (compLower === 'voleur') {
+                        return {
+                            name: `${emojis.offshore} ${comp}`,
+                            value: 'Tu peux voler comme un arabe mtn',
+                            inline: false
+                        };
+                    }
                     return {
                         name: `${emojis[compLower] || emojis.default} ${comp}`,
                         value: '\u200B',
