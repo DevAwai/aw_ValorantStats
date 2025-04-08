@@ -27,7 +27,11 @@ const AVAILABLE_COMPETENCIES = {
         price: 10000,
         max: 3 
     },
-    "Chômeur": { price: 20000 }
+    "Chômeur": { price: 20000 },
+    "Offshore": { 
+        price: 50000,
+        max: 1
+    }
 };
 
 module.exports = {
@@ -124,6 +128,32 @@ module.exports = {
                 saveCompetencies();
                 return interaction.reply({ 
                     content: `✅ Achat réussi! Antivol (${playerCompetencies[userId].antivol.count}/3) pour ${competPrice} vcoins.`,
+                    ephemeral: true
+                });
+            }
+
+            if (competenceName === "Offshore") {
+                if (playerCompetencies[userId]?.competences?.includes("Offshore")) {
+                    return interaction.reply({ 
+                        content: "❌ Vous possédez déjà un compte offshore!", 
+                        ephemeral: true 
+                    });
+                }
+            
+                const userBalance = getUserBalance(userId);
+                if (userBalance < competPrice) {
+                    return interaction.reply({ 
+                        content: `❌ Il vous faut ${competPrice} vcoins pour ouvrir un compte offshore!`, 
+                        ephemeral: true 
+                    });
+                }
+            
+                updateUserBalance(userId, -competPrice);
+                playerCompetencies[userId].competences.push("Offshore");
+                saveCompetencies();
+            
+                return interaction.reply({ 
+                    content: `✅ Compte offshore ouvert! Vous pouvez maintenant protéger 50% de votre solde des taxes. Coût: ${competPrice} vcoins.`,
                     ephemeral: true
                 });
             }

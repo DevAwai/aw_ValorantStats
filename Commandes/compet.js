@@ -36,6 +36,12 @@ module.exports = {
                         description: 'Gagne de la thune sans rien faire comme IRL',
                         value: 'chomeur',
                         emoji: '🛌'
+                    },
+                    {
+                        label: 'Offshore',
+                        description: 'Protéger son argent des taxes',
+                        value: 'offshore',
+                        emoji: '🏦'
                     }
                 ]);
 
@@ -110,6 +116,18 @@ module.exports = {
                                     { name: 'Allocation', value: '5000 vcoins toutes les 5 minutes', inline: true },
                                     { name: 'Condition', value: 'Doit être en ligne sur Discord', inline: true },
                                     { name: 'Incompatibilité', value: 'Impossible avec la compétence Travailleur', inline: false }
+                                );
+                            break;
+        
+                        case 'offshore':
+                            detailsEmbed = new EmbedBuilder()
+                                .setColor('#00FFFF')
+                                .setTitle('🏦 Offshore')
+                                .setDescription('Protection fiscale')
+                                .addFields(
+                                    { name: 'Prix', value: '50,000 vcoins', inline: true },
+                                    { name: 'Avantage', value: 'Protège 50% de votre solde des taxes', inline: true },
+                                    { name: 'Note', value: 'Une seule protection offshore possible', inline: true }
                                 );
                             break;
                     }

@@ -39,8 +39,15 @@ async function applyRandomTax(bot) {
                 const member = await guild.members.fetch(user.id).catch(() => null);
                 if (member) username = member.user.username;
             }
-
-            const taxAmount = Math.floor(user.balance * TAX_RATE);
+    
+            let taxAmount = Math.floor(user.balance * TAX_RATE);
+            const offshoreProtected = playerCompetencies[user.id]?.competences?.includes("Offshore");
+            
+            if (offshoreProtected) {
+                const protectedAmount = Math.floor(user.balance * 0.5);
+                taxAmount = Math.floor((user.balance - protectedAmount) * TAX_RATE);
+            }
+    
             updateUserBalance(user.id, -taxAmount);
             
             taxReports.push({
@@ -48,19 +55,23 @@ async function applyRandomTax(bot) {
                 username: username,
                 amount: taxAmount,
                 oldBalance: user.balance,
-                newBalance: user.balance - taxAmount
+                newBalance: user.balance - taxAmount,
+                offshoreProtected: offshoreProtected
             });
-
+    
             try {
-                await bot.users.send(user.id, 
-                    `💸 **Alerte Fiscale**\n` +
-                    `Vous avez été taxé de **${taxAmount} VCOINS** (2% de votre solde).\n` +
-                    `Nouveau solde: **${user.balance - taxAmount} VCOINS**`
-                );
+                let dmMessage = `💸 **Alerte Fiscale**\n` +
+                               `Vous avez été taxé de **${taxAmount} VCOINS** (2% de votre solde${offshoreProtected ? ' après protection offshore' : ''}).\n` +
+                               `Nouveau solde: **${user.balance - taxAmount} VCOINS**`;
+                
+                if (offshoreProtected) {
+                    dmMessage += `\n\n🛡️ Votre compte offshore a protégé une partie de votre argent!`;
+                }
+    
+                await bot.users.send(user.id, dmMessage);
             } catch (dmError) {
                 console.error(`Erreur DM pour ${username}:`, dmError);
             }
-
         } catch (error) {
             console.error(`Erreur traitement ${user.id}:`, error);
         }

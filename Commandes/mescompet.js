@@ -40,6 +40,7 @@ module.exports = {
                     travailleur: '💼',
                     antivol: '🛡️',
                     chômeur: '🛌',
+                    offshore: '🏦',
                     default: '🔹'
                 };
 
@@ -56,6 +57,13 @@ module.exports = {
                         return {
                             name: `${emojis.chômeur} ${comp}`,
                             value: 'Allocation: 5000 vcoins/5min (en ligne)',
+                            inline: false
+                        };
+                    }
+                    if (compLower === 'offshore') {
+                        return {
+                            name: `${emojis.offshore} ${comp}`,
+                            value: 'Protection fiscale: 50% du solde protégé',
                             inline: false
                         };
                     }
