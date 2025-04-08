@@ -93,4 +93,4 @@ async function applyRandomTax(bot) {
     return true;
 }
 
-module.exports = { applyRandomTax };
+module.exports = { applyRandomTax, loadTaxData };

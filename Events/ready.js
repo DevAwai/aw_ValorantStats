@@ -2,7 +2,7 @@ const Discord = require('discord.js');
 const loadSlashCommands = require('../Loaders/loadSlashCommands');
 const systemchomage = require('../utils/systemchomage');
 const { updateUserBalance } = require('../utils/creditsManager');
-const { applyRandomTax } = require('../utils/taxesManager');
+const { applyRandomTax, loadTaxData } = require('../utils/taxesManager');
 
 module.exports = async bot => {
     await loadSlashCommands(bot);
@@ -24,26 +24,31 @@ module.exports = async bot => {
     systemchomage(bot);
 
     const scheduleDailyTax = () => {
+        const taxData = loadTaxData();
         const now = new Date();
-        const targetTime = new Date();
-
-        targetTime.setHours(19, 0, 0, 0);
-
-        if (now > targetTime) {
-            targetTime.setDate(targetTime.getDate() + 1);
-        }
-
-        const initialDelay = targetTime - now;
-
-        setTimeout(() => {
-            applyRandomTax(bot);
-            console.log("💰 Taxation quotidienne effectuée à 19h");
+        const lastTax = new Date(taxData.lastTaxation);
+        
+        if (now - lastTax < 24 * 60 * 60 * 1000) {
+            const nextTax = new Date(lastTax);
+            nextTax.setDate(nextTax.getDate() + 1);
+            const delay = nextTax - now;
             
-            setInterval(() => {
-                applyRandomTax(bot);
-                console.log("💰 Taxation quotidienne effectuée à 19h");
-            }, 24 * 60 * 60 * 1000);
-        }, initialDelay);
+            setTimeout(() => {
+                executeDailyTax(bot);
+            }, delay);
+        } else {
+            executeDailyTax(bot);
+        }
+    };
+
+    const executeDailyTax = (bot) => {
+        applyRandomTax(bot);
+        console.log("💰 Taxation quotidienne effectuée");
+        
+        setInterval(() => {
+            applyRandomTax(bot);
+            console.log("💰 Taxation quotidienne effectuée");
+        }, 24 * 60 * 60 * 1000);
     };
 
     scheduleDailyTax();
