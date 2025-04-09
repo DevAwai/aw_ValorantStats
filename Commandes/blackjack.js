@@ -1,5 +1,4 @@
-const { SlashCommandBuilder, EmbedBuilder } = require("discord.js");
-const { handleError } = require("../utils/errorHandler");
+const { SlashCommandBuilder, EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle } = require("discord.js");
 const { getUserBalance, updateUserBalance, createUserIfNotExists } = require("../utils/creditsManager");
 const { checkCooldown, setCooldown, formatDuration } = require("../utils/cooldownManager");
 
@@ -17,14 +16,11 @@ function calculateHand(hand) {
         total -= 10;
         aces--;
     }
-    
     return total;
 }
 
 function formatHand(hand, hideFirstCard = false) {
-    if (hideFirstCard) {
-        return `[?] ${hand.slice(1).join(' ')}`;
-    }
+    if (hideFirstCard) return `[?] ${hand.slice(1).join(' ')}`;
     return hand.join(' ');
 }
 
@@ -32,16 +28,14 @@ module.exports = {
     name: "blackjack",
     description: "Jouer une partie de Blackjack (mise: 1-10 000 VCOINS)",
     cooldown: 10000,
-    options: [
-        {
-            type: "integer",
-            name: "montant",
-            description: "Mise (1-10 000 VCOINS)",
-            required: true,
-            min_value: 1,
-            max_value: 10000
-        }
-    ],
+    options: [{
+        type: "integer",
+        name: "montant",
+        description: "Mise (1-10 000 VCOINS)",
+        required: true,
+        min_value: 1,
+        max_value: 10000
+    }],
     async execute(interaction) {
         const cooldownResult = checkCooldown(interaction.user.id, this.name, this.cooldown);
         if (cooldownResult !== true) {
@@ -68,7 +62,7 @@ module.exports = {
 
             if (montant > userBalance) {
                 return interaction.reply({
-                    content: `❌ Solde insuffisant ! Vous avez ${userBalance} VCOINS (mise min: 1, max: 10 000).`,
+                    content: `❌ Solde insuffisant ! Vous avez ${userBalance} VCOINS.`,
                     ephemeral: true
                 });
             }
@@ -84,140 +78,152 @@ module.exports = {
                 dealerHand.push(deck[Math.floor(Math.random() * deck.length)]);
             }
 
-            const playerTotal = calculateHand(playerHand);
-            const dealerTotal = calculateHand(dealerHand);
+            const buttons = new ActionRowBuilder()
+                .addComponents(
+                    new ButtonBuilder()
+                        .setCustomId('hit')
+                        .setLabel('Tirer (✅)')
+                        .setStyle(ButtonStyle.Primary),
+                    new ButtonBuilder()
+                        .setCustomId('stand')
+                        .setLabel('Rester (🛑)')
+                        .setStyle(ButtonStyle.Danger)
+                );
 
-            const initialEmbed = new EmbedBuilder()
+            const embed = new EmbedBuilder()
                 .setTitle("🎲 BlackJack")
                 .setColor("#0099FF")
-                .setDescription(`Partie commencée avec une mise de **${montant} VCOINS**`)
+                .setDescription(`Mise: **${montant} VCOINS**`)
                 .addFields(
-                    { name: "Vous", value: `${formatHand(playerHand)} (Total: ${playerTotal})`, inline: false },
-                    { name: "Croupier", value: formatHand(dealerHand, true), inline: false }
+                    { name: "Votre main", value: `${formatHand(playerHand)} (Total: ${calculateHand(playerHand)})` },
+                    { name: "Croupier", value: formatHand(dealerHand, true) }
                 )
-                .setFooter({ text: "Réagissez avec ✅ pour tirer ou 🛑 pour rester" });
+                .setFooter({ text: "Vous avez 15 secondes pour jouer" });
 
-            const message = await interaction.reply({ 
-                embeds: [initialEmbed],
+            const response = await interaction.reply({ 
+                embeds: [embed], 
+                components: [buttons],
                 fetchReply: true 
             });
 
-            await message.react('✅');
-            await message.react('🛑'); 
+            const collector = response.createMessageComponentCollector({ 
+                filter: i => i.user.id === interaction.user.id,
+                time: 15000
+            });
 
-            const filter = (reaction, user) => {
-                return ['✅', '🛑'].includes(reaction.emoji.name) && user.id === interaction.user.id;
-            };
-
-            const collector = message.createReactionCollector({ filter, time: 30000, max: 1 });
-
-            collector.on('collect', async (reaction) => {
-                let playerBusted = false;
-                let dealerBusted = false;
-                let gameOver = false;
-                let result = "";
-
-                if (reaction.emoji.name === '✅') {
+            collector.on('collect', async i => {
+                if (i.customId === 'hit') {
                     playerHand.push(deck[Math.floor(Math.random() * deck.length)]);
-                    const newPlayerTotal = calculateHand(playerHand);
+                    const newTotal = calculateHand(playerHand);
 
-                    if (newPlayerTotal > 21) {
-                        playerBusted = true;
-                        gameOver = true;
-                        result = "Loser";
+                    if (newTotal > 21) {
                         updateUserBalance(userId, -montant);
+                        return endGame("Loser", "Vous avez dépassé 21 !");
                     }
 
-                    if (!gameOver) {
-                        const hitEmbed = new EmbedBuilder()
-                            .setTitle("🎲 BlackJack")
-                            .setColor("#0099FF")
-                            .setDescription(`Vous avez tiré une carte. Mise: **${montant} VCOINS**`)
-                            .addFields(
-                                { name: "Vous", value: `${formatHand(playerHand)} (Total: ${newPlayerTotal})`, inline: false },
-                                { name: "Croupier", value: formatHand(dealerHand, true), inline: false }
-                            )
-                            .setFooter({ text: "Réagissez avec ✅ pour tirer ou 🛑 pour rester" });
-
-                        await message.edit({ embeds: [hitEmbed] });
-                        return;
-                    }
-                }
-
-                if (reaction.emoji.name === '🛑' || playerBusted) {
-                    let currentDealerTotal = calculateHand(dealerHand);
-                    const dealerCards = [...dealerHand];
-
-                    while (currentDealerTotal < 17) {
-                        dealerCards.push(deck[Math.floor(Math.random() * deck.length)]);
-                        currentDealerTotal = calculateHand(dealerCards);
-                    }
-
-                    dealerBusted = currentDealerTotal > 21;
-                    const finalPlayerTotal = calculateHand(playerHand);
-
-                    if (playerBusted) {
-                        result = "Loser";
-                    } else if (dealerBusted) {
-                        result = "Winner";
-                    } else if (finalPlayerTotal > currentDealerTotal) {
-                        result = "Winner";
-                    } else if (finalPlayerTotal < currentDealerTotal) {
-                        result = "Loser";
-                    } else {
-                        result = "Push";
-                    }
-
-                    if (result === "Winner") {
-                        updateUserBalance(userId, montant);
-                    } else if (result === "Loser") {
-                        updateUserBalance(userId, -montant);
-                    }
-
-                    const newBalance = getUserBalance(userId);
-
-                    const resultEmbed = new EmbedBuilder()
-                        .setTitle("🎲 BlackJack")
-                        .setColor(result === "Winner" ? "#00FF00" : result === "Push" ? "#FFFF00" : "#FF0000")
-                        .addFields(
-                            { name: "Vous", value: `${formatHand(playerHand)} (Total: ${finalPlayerTotal})`, inline: false },
-                            { name: "Croupier", value: `${formatHand(dealerCards)} (Total: ${currentDealerTotal})`, inline: false }
-                        );
-
-                    if (result === "Winner") {
-                        resultEmbed.setDescription(`🎉 **${userTag}** a gagné **${montant} VCOINS** !`);
-                    } else if (result === "Loser") {
-                        resultEmbed.setDescription(`😢 **${userTag}** a perdu **${montant} VCOINS**.`);
-                    } else {
-                        resultEmbed.setDescription(`🤝 Égalité ! Votre mise vous est rendue.`);
-                    }
-
-                    resultEmbed.addFields(
-                        { name: "Résultat", value: result === "Winner" ? "Gagnant" : result === "Loser" ? "Perdant" : "Égalité", inline: true },
-                        { name: "Nouveau solde", value: `${newBalance} VCOINS`, inline: true }
+                    embed.setFields(
+                        { name: "Votre main", value: `${formatHand(playerHand)} (Total: ${newTotal})` },
+                        { name: "Croupier", value: formatHand(dealerHand, true) }
                     );
 
-                    await message.edit({ embeds: [resultEmbed] });
-                    await message.reactions.removeAll();
+                    await i.update({ embeds: [embed], components: [buttons] });
+                } 
+                else if (i.customId === 'stand') {
+                    collector.stop();
+                    playDealerHand();
                 }
             });
 
-            collector.on('end', collected => {
-                if (collected.size === 0) {
-                    message.reply({ 
-                        content: "⌛ Temps écoulé ! La partie a été annulée.",
+            collector.on('end', async () => {
+                if (!collector.ended) {
+                    await interaction.followUp({ 
+                        content: "⌛ Temps écoulé ! Partie annulée.",
                         ephemeral: true 
                     });
-                    message.reactions.removeAll();
+                    await response.edit({ components: [] }).catch(console.error);
                 }
             });
 
+            async function playDealerHand() {
+                let dealerCards = [...dealerHand];
+                let dealerTotal = calculateHand(dealerCards);
+
+                while (dealerTotal < 17) {
+                    dealerCards.push(deck[Math.floor(Math.random() * deck.length)]);
+                    dealerTotal = calculateHand(dealerCards);
+                }
+
+                const playerTotal = calculateHand(playerHand);
+                let result, description;
+
+                if (playerTotal > 21) {
+                    result = "Loser";
+                    description = "Vous avez dépassé 21 !";
+                } 
+                else if (dealerTotal > 21) {
+                    result = "Winner";
+                    description = "Le croupier a dépassé 21 !";
+                } 
+                else if (playerTotal > dealerTotal) {
+                    result = "Winner";
+                    description = "Vous avez battu le croupier !";
+                } 
+                else if (playerTotal < dealerTotal) {
+                    result = "Loser";
+                    description = "Le croupier vous a battu !";
+                } 
+                else {
+                    result = "Push";
+                    description = "Égalité !";
+                }
+
+                endGame(result, description);
+            }
+
+            async function endGame(result, description) {
+                if (result === "Winner") {
+                    updateUserBalance(userId, montant);
+                } else if (result === "Loser") {
+                    updateUserBalance(userId, -montant);
+                }
+
+                const disabledButtons = new ActionRowBuilder()
+                    .addComponents(
+                        new ButtonBuilder()
+                            .setCustomId('hit')
+                            .setLabel('Tirer')
+                            .setStyle(ButtonStyle.Primary)
+                            .setDisabled(true),
+                        new ButtonBuilder()
+                            .setCustomId('stand')
+                            .setLabel('Rester')
+                            .setStyle(ButtonStyle.Danger)
+                            .setDisabled(true)
+                    );
+
+                embed
+                    .setColor(result === "Winner" ? "#00FF00" : result === "Push" ? "#FFFF00" : "#FF0000")
+                    .setDescription(`${description}\nMise: **${montant} VCOINS**`)
+                    .setFields(
+                        { name: "Votre main", value: `${formatHand(playerHand)} (Total: ${calculateHand(playerHand)})` },
+                        { name: "Croupier", value: `${formatHand(dealerHand)} (Total: ${calculateHand(dealerHand)})` },
+                        { name: "Résultat", value: result === "Winner" ? `🎉 Gagné ${montant} VCOINS` : result === "Loser" ? `😢 Perdu ${montant} VCOINS` : "🤝 Égalité" },
+                        { name: "Nouveau solde", value: `${getUserBalance(userId)} VCOINS` }
+                    )
+                    .setFooter({ text: "Partie terminée" });
+
+                await response.edit({ 
+                    embeds: [embed], 
+                    components: [disabledButtons] 
+                }).catch(console.error);
+            }
+
         } catch (error) {
-            console.error("Erreur:", error);
+            console.error("Erreur Blackjack:", error);
             await interaction.reply({ 
-                content: "❌ Échec de la partie",
+                content: "❌ Une erreur est survenue lors de la partie.",
                 ephemeral: true 
-            });
+            }).catch(console.error);
         }
     }
 };
