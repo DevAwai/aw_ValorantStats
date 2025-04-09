@@ -44,7 +44,7 @@ function checkCooldown(userId, commandName, cooldownTime) {
     const elapsed = now - lastUsed;
 
     if (elapsed < cooldownTime) {
-        return cooldownTime - elapsed;
+        return `⌛ Vous devez attendre ${formatDuration(cooldownTime - elapsed)} avant de réutiliser cette commande.`;
     }
     return true;
 }

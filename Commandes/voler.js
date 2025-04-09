@@ -52,7 +52,7 @@ module.exports = {
             }
 
             const cooldownStatus = checkCooldown(userId, 'voler', COOLDOWN_TIME);
-            if (typeof cooldownStatus === 'string') {
+            if (cooldownStatus !== true) { 
                 return await interaction.reply({
                     content: cooldownStatus,
                     ephemeral: true
@@ -70,37 +70,36 @@ module.exports = {
                 try {
                     const success = userId === khali ? true : Math.random() < 0.5;
                     const eligiblePlayers = getAllUsersWithBalance().filter(u => u.id !== userId);
-
+            
+                    await setCooldown(userId, 'voler');
+            
                     if (success && eligiblePlayers.length > 0) {
                         const victim = eligiblePlayers[Math.floor(Math.random() * eligiblePlayers.length)];
                         const victimData = playerCompetencies[victim.id] || { antivol: { count: 0 } };
-
+            
                         if (victimData.antivol?.count > 0) {
                             playerCompetencies[victim.id].antivol.count--;
                             saveCompetencies();
-
                             await interaction.followUp({
                                 content: `🛡️ ${victim.username} était protégé(e) par un Antivol! (${playerCompetencies[victim.id].antivol.count}/3 restants)`,
                                 ephemeral: true
                             });
                         } else {
-                            const stolenAmount = Math.floor(Math.random() * 100000) + 1;
+                            const stolenAmount = Math.min(
+                                Math.floor(Math.random() * 100000) + 1,
+                                Math.floor(victim.balance * 0.1)
+                            );
                             updateUserBalance(victim.id, -stolenAmount);
                             updateUserBalance(userId, stolenAmount);
-                            setCooldown(userId, 'voler', COOLDOWN_TIME);
-
-                            const victimUser = await interaction.client.users.fetch(victim.id);
-
+            
+                            const logEntry = `[${new Date().toISOString()}] ${user.username} a volé ${stolenAmount} vcoins à ${victim.username}\n`;
+                            fs.appendFileSync(path.join(__dirname, '../data/steals.log'), logEntry);
+            
                             await interaction.followUp({
-                                content: `🔴 ${user.username} a volé ${stolenAmount} vcoins à ${victimUser.username}!`,
+                                content: `🔴 ${user.username} a volé ${stolenAmount} vcoins à ${victim.username}!`,
                                 ephemeral: false
                             });
                         }
-                    } else if (success) {
-                        await interaction.followUp({
-                            content: "💰 Personne à voler...",
-                            ephemeral: true
-                        });
                     } else {
                         updateUserBalance(userId, -10000);
                         await interaction.followUp({
@@ -110,10 +109,6 @@ module.exports = {
                     }
                 } catch (error) {
                     console.error("Erreur:", error);
-                    await interaction.followUp({
-                        content: "❌ Erreur pendant le vol",
-                        ephemeral: true
-                    });
                 } finally {
                     pendingSteals.delete(userId);
                 }
