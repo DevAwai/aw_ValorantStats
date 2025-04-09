@@ -1,6 +1,6 @@
 const { SlashCommandBuilder, EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle } = require("discord.js");
 const { getUserBalance, updateUserBalance, createUserIfNotExists } = require("../utils/creditsManager");
-const { checkCooldown, setCooldown, formatDuration } = require("../utils/cooldownManager");
+const { checkCooldown, setCooldown } = require("../utils/cooldownManager");
 
 function getCardValue(card) {
     if (card === 'A') return 11;
@@ -11,7 +11,6 @@ function getCardValue(card) {
 function calculateHand(hand) {
     let total = hand.reduce((sum, card) => sum + getCardValue(card), 0);
     let aces = hand.filter(card => card === 'A').length;
-    
     while (total > 21 && aces > 0) {
         total -= 10;
         aces--;
@@ -37,34 +36,19 @@ module.exports = {
         max_value: 10000
     }],
     async execute(interaction) {
-        const cooldownResult = checkCooldown(interaction.user.id, this.name, this.cooldown);
-        if (cooldownResult !== true) {
-            return interaction.reply({ 
-                content: `⏳ Attendez ${formatDuration(cooldownResult)} avant de rejouer.`,
-                ephemeral: true 
-            });
+        if (checkCooldown(interaction.user.id, this.name, this.cooldown) !== true) {
+            return interaction.reply({ ephemeral: true, content: "" });
         }
 
         try {
             const montant = interaction.options.getInteger("montant");
             const userId = interaction.user.id;
-            const userTag = interaction.user.username;
-
-            if (montant < 1 || montant > 10000) {
-                return interaction.reply({
-                    content: "❌ Mise invalide (1-10 000 VCOINS seulement)",
-                    ephemeral: true
-                });
-            }
 
             createUserIfNotExists(userId);
             let userBalance = getUserBalance(userId);
 
             if (montant > userBalance) {
-                return interaction.reply({
-                    content: `❌ Solde insuffisant ! Vous avez ${userBalance} VCOINS.`,
-                    ephemeral: true
-                });
+                return interaction.reply({ ephemeral: true, content: "" });
             }
 
             setCooldown(userId, this.name, this.cooldown);
@@ -82,27 +66,26 @@ module.exports = {
                 .addComponents(
                     new ButtonBuilder()
                         .setCustomId('hit')
-                        .setLabel('Tirer (✅)')
+                        .setLabel('Tirer')
                         .setStyle(ButtonStyle.Primary),
                     new ButtonBuilder()
                         .setCustomId('stand')
-                        .setLabel('Rester (🛑)')
+                        .setLabel('Rester')
                         .setStyle(ButtonStyle.Danger)
                 );
 
             const embed = new EmbedBuilder()
-                .setTitle("🎲 BlackJack")
+                .setTitle("BlackJack")
                 .setColor("#0099FF")
-                .setDescription(`Mise: **${montant} VCOINS**`)
                 .addFields(
-                    { name: "Votre main", value: `${formatHand(playerHand)} (Total: ${calculateHand(playerHand)})` },
+                    { name: "Vous", value: `${formatHand(playerHand)} (${calculateHand(playerHand)})` },
                     { name: "Croupier", value: formatHand(dealerHand, true) }
-                )
-                .setFooter({ text: "Vous avez 15 secondes pour jouer" });
+                );
 
             const response = await interaction.reply({ 
                 embeds: [embed], 
                 components: [buttons],
+                ephemeral: true,
                 fetchReply: true 
             });
 
@@ -118,15 +101,15 @@ module.exports = {
 
                     if (newTotal > 21) {
                         updateUserBalance(userId, -montant);
-                        return endGame("Loser", "Vous avez dépassé 21 !");
+                        return endGame("Loser", calculateHand(dealerHand));
                     }
 
                     embed.setFields(
-                        { name: "Votre main", value: `${formatHand(playerHand)} (Total: ${newTotal})` },
+                        { name: "Vous", value: `${formatHand(playerHand)} (${newTotal})` },
                         { name: "Croupier", value: formatHand(dealerHand, true) }
                     );
 
-                    await i.update({ embeds: [embed], components: [buttons] });
+                    await i.update({ embeds: [embed] });
                 } 
                 else if (i.customId === 'stand') {
                     collector.stop();
@@ -134,14 +117,8 @@ module.exports = {
                 }
             });
 
-            collector.on('end', async () => {
-                if (!collector.ended) {
-                    await interaction.followUp({ 
-                        content: "⌛ Temps écoulé ! Partie annulée.",
-                        ephemeral: true 
-                    });
-                    await response.edit({ components: [] }).catch(console.error);
-                }
+            collector.on('end', () => {
+                response.edit({ components: [] }).catch(() => {});
             });
 
             async function playDealerHand() {
@@ -154,76 +131,38 @@ module.exports = {
                 }
 
                 const playerTotal = calculateHand(playerHand);
-                let result, description;
+                let result;
 
-                if (playerTotal > 21) {
-                    result = "Loser";
-                    description = "Vous avez dépassé 21 !";
-                } 
-                else if (dealerTotal > 21) {
-                    result = "Winner";
-                    description = "Le croupier a dépassé 21 !";
-                } 
-                else if (playerTotal > dealerTotal) {
-                    result = "Winner";
-                    description = "Vous avez battu le croupier !";
-                } 
-                else if (playerTotal < dealerTotal) {
-                    result = "Loser";
-                    description = "Le croupier vous a battu !";
-                } 
-                else {
-                    result = "Push";
-                    description = "Égalité !";
-                }
+                if (playerTotal > 21) result = "Loser";
+                else if (dealerTotal > 21) result = "Winner";
+                else if (playerTotal > dealerTotal) result = "Winner";
+                else if (playerTotal < dealerTotal) result = "Loser";
+                else result = "Push";
 
-                endGame(result, description);
+                endGame(result, dealerTotal);
             }
 
-            async function endGame(result, description) {
-                if (result === "Winner") {
-                    updateUserBalance(userId, montant);
-                } else if (result === "Loser") {
-                    updateUserBalance(userId, -montant);
-                }
-
-                const disabledButtons = new ActionRowBuilder()
-                    .addComponents(
-                        new ButtonBuilder()
-                            .setCustomId('hit')
-                            .setLabel('Tirer')
-                            .setStyle(ButtonStyle.Primary)
-                            .setDisabled(true),
-                        new ButtonBuilder()
-                            .setCustomId('stand')
-                            .setLabel('Rester')
-                            .setStyle(ButtonStyle.Danger)
-                            .setDisabled(true)
-                    );
+            async function endGame(result, dealerTotal) {
+                if (result === "Winner") updateUserBalance(userId, montant);
+                else if (result === "Loser") updateUserBalance(userId, -montant);
 
                 embed
                     .setColor(result === "Winner" ? "#00FF00" : result === "Push" ? "#FFFF00" : "#FF0000")
-                    .setDescription(`${description}\nMise: **${montant} VCOINS**`)
                     .setFields(
-                        { name: "Votre main", value: `${formatHand(playerHand)} (Total: ${calculateHand(playerHand)})` },
-                        { name: "Croupier", value: `${formatHand(dealerHand)} (Total: ${calculateHand(dealerHand)})` },
-                        { name: "Résultat", value: result === "Winner" ? `🎉 Gagné ${montant} VCOINS` : result === "Loser" ? `😢 Perdu ${montant} VCOINS` : "🤝 Égalité" },
-                        { name: "Nouveau solde", value: `${getUserBalance(userId)} VCOINS` }
-                    )
-                    .setFooter({ text: "Partie terminée" });
+                        { name: "Vous", value: `${formatHand(playerHand)} (${calculateHand(playerHand)})` },
+                        { name: "Croupier", value: `${formatHand(dealerHand)} (${dealerTotal})` },
+                        { name: "Résultat", value: result === "Winner" ? `+${montant} VCOINS` : result === "Loser" ? `-${montant} VCOINS` : "Égalité" },
+                        { name: "Solde", value: `${getUserBalance(userId)} VCOINS` }
+                    );
 
                 await response.edit({ 
-                    embeds: [embed], 
-                    components: [disabledButtons] 
-                }).catch(console.error);
+                    embeds: [embed],
+                    components: [] 
+                }).catch(() => {});
             }
 
-        } catch (error) {
-            console.error("Erreur Blackjack:", error);
-            await interaction.reply({ 
-                content: "❌ Une erreur est survenue lors de la partie.",
-                ephemeral: true 
-            }).catch(console.error);
+        } catch {
+            interaction.reply({ ephemeral: true, content: "" }).catch(() => {});
         }
     }
 };
