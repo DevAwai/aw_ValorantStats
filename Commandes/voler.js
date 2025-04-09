@@ -75,13 +75,15 @@ module.exports = {
             
                     if (success && eligiblePlayers.length > 0) {
                         const victim = eligiblePlayers[Math.floor(Math.random() * eligiblePlayers.length)];
+                        const victimUser = await interaction.client.users.fetch(victim.id).catch(() => null);
+                        const victimName = victimUser ? victimUser.username : `ID:${victim.id.slice(0,6)}`;
                         const victimData = playerCompetencies[victim.id] || { antivol: { count: 0 } };
             
                         if (victimData.antivol?.count > 0) {
                             playerCompetencies[victim.id].antivol.count--;
                             saveCompetencies();
                             await interaction.followUp({
-                                content: `🛡️ ${victim.username} était protégé(e) par un Antivol! (${playerCompetencies[victim.id].antivol.count}/3 restants)`,
+                                content: `🛡️ ${victimName} était protégé(e) par un Antivol! (${playerCompetencies[victim.id].antivol.count}/3 restants)`,
                                 ephemeral: true
                             });
                         } else {
@@ -92,11 +94,8 @@ module.exports = {
                             updateUserBalance(victim.id, -stolenAmount);
                             updateUserBalance(userId, stolenAmount);
             
-                            const logEntry = `[${new Date().toISOString()}] ${user.username} a volé ${stolenAmount} vcoins à ${victim.username}\n`;
-                            fs.appendFileSync(path.join(__dirname, '../data/steals.log'), logEntry);
-            
                             await interaction.followUp({
-                                content: `🔴 ${user.username} a volé ${stolenAmount} vcoins à ${victim.username}!`,
+                                content: `🔴 ${user.username} a volé ${stolenAmount} vcoins à ${victimName}!`,
                                 ephemeral: false
                             });
                         }
