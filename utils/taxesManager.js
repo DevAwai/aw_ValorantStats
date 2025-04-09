@@ -1,6 +1,6 @@
 const fs = require('fs');
 const path = require('path');
-const { getAllUsersWithBalance, updateUserBalance, getUserBalance } = require('./creditsManager');
+const { getAllUsersWithBalance, updateUserBalance } = require('./creditsManager');
 
 const TAXES_LOG_PATH = path.join(__dirname, '../data/taxes_log.json');
 const TAX_THRESHOLD = 100000;  
@@ -41,7 +41,7 @@ async function applyRandomTax(bot) {
             }
     
             let taxAmount = Math.floor(user.balance * TAX_RATE);
-            const offshoreProtected = playerCompetencies[user.id]?.competences?.includes("Offshore");
+            const offshoreProtected = false;
             
             if (offshoreProtected) {
                 const protectedAmount = Math.floor(user.balance * 0.5);
@@ -61,12 +61,8 @@ async function applyRandomTax(bot) {
     
             try {
                 let dmMessage = `💸 **Alerte Fiscale**\n` +
-                               `Vous avez été taxé de **${taxAmount} VCOINS** (2% de votre solde${offshoreProtected ? ' après protection offshore' : ''}).\n` +
+                               `Vous avez été taxé de **${taxAmount} VCOINS** (2% de votre solde).\n` +
                                `Nouveau solde: **${user.balance - taxAmount} VCOINS**`;
-                
-                if (offshoreProtected) {
-                    dmMessage += `\n\n🛡️ Votre compte offshore a protégé une partie de votre argent!`;
-                }
     
                 await bot.users.send(user.id, dmMessage);
             } catch (dmError) {
