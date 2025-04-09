@@ -1,6 +1,7 @@
 const fs = require('fs');
 const path = require('path');
 const { getAllUsersWithBalance, updateUserBalance } = require('./creditsManager');
+const { loadCompetencies } = require('../utils/competenciesManager');
 
 const TAXES_LOG_PATH = path.join(__dirname, '../data/taxes_log.json');
 const TAX_THRESHOLD = 100000;  
@@ -30,8 +31,10 @@ async function applyRandomTax(bot) {
     
     if (taxableUsers.length === 0) return false;
 
+    const competenciesData = loadCompetencies();
     const taxReports = [];
     const guild = bot.guilds.cache.get('1283354646567456799');
+
     for (const user of taxableUsers) {
         try {
             let username = `ID:${user.id.slice(0,6)}`;
@@ -39,15 +42,15 @@ async function applyRandomTax(bot) {
                 const member = await guild.members.fetch(user.id).catch(() => null);
                 if (member) username = member.user.username;
             }
-    
+
+            const offshoreProtected = competenciesData[user.id]?.competences?.includes("Offshore") || false;
             let taxAmount = Math.floor(user.balance * TAX_RATE);
-            const offshoreProtected = false;
             
             if (offshoreProtected) {
                 const protectedAmount = Math.floor(user.balance * 0.5);
                 taxAmount = Math.floor((user.balance - protectedAmount) * TAX_RATE);
             }
-    
+
             updateUserBalance(user.id, -taxAmount);
             
             taxReports.push({
@@ -58,12 +61,16 @@ async function applyRandomTax(bot) {
                 newBalance: user.balance - taxAmount,
                 offshoreProtected: offshoreProtected
             });
-    
+
             try {
                 let dmMessage = `💸 **Alerte Fiscale**\n` +
-                               `Vous avez été taxé de **${taxAmount} VCOINS** (2% de votre solde).\n` +
+                               `Vous avez été taxé de **${taxAmount} VCOINS** (2% de votre solde${offshoreProtected ? ' après protection offshore' : ''}).\n` +
                                `Nouveau solde: **${user.balance - taxAmount} VCOINS**`;
-    
+                
+                if (offshoreProtected) {
+                    dmMessage += `\n\n🛡️ Votre compte offshore a protégé une partie de votre argent!`;
+                }
+
                 await bot.users.send(user.id, dmMessage);
             } catch (dmError) {
                 console.error(`Erreur DM pour ${username}:`, dmError);
@@ -83,7 +90,8 @@ async function applyRandomTax(bot) {
     if (logChannel && taxReports.length > 0) {
         const totalTaxed = taxReports.reduce((sum, r) => sum + r.amount, 0);
         const taxList = taxReports.map(r => 
-            `- **${r.username}**: ${r.amount} VCOINS (${r.oldBalance} → ${r.newBalance})`
+            `- **${r.username}**: ${r.amount} VCOINS (${r.oldBalance} → ${r.newBalance})` +
+            (r.offshoreProtected ? ' 🏦 (offshore)' : '')
         ).join('\n');
 
         await logChannel.send({
