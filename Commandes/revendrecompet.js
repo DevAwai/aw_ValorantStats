@@ -33,7 +33,6 @@ module.exports = {
             const userId = interaction.user.id;
             const competenceInput = interaction.options.getString("competence").toLowerCase();
 
-            // 1. Charger les données
             let playerCompetencies = {};
             try {
                 playerCompetencies = JSON.parse(fs.readFileSync(COMPETENCIES_FILE, 'utf8'));
@@ -42,7 +41,6 @@ module.exports = {
                 playerCompetencies = {};
             }
 
-            // 2. Vérifier la possession
             const competenceName = Object.keys(PRICES).find(
                 name => name.toLowerCase() === competenceInput
             );
@@ -59,7 +57,6 @@ module.exports = {
                 antivol: { count: 0 }
             };
 
-            // Vérification universelle de possession
             const hasCompetence = competenceName === "Antivol" 
                 ? userData.antivol.count > 0
                 : userData.competences.includes(competenceName);
@@ -71,39 +68,38 @@ module.exports = {
                 });
             }
 
-            // 3. Calcul du remboursement
-            const refund = competenceName === "Antivol"
+            const refund = Math.floor((competenceName === "Antivol"
                 ? PRICES.Antivol * userData.antivol.count
-                : PRICES[competenceName];
+                : PRICES[competenceName]) * 0.5);
 
-            // 4. Suppression COMPLÈTE de la compétence
+            updateUserBalance(userId, refund);
+
             if (competenceName === "Antivol") {
                 userData.antivol.count = 0;
+            } else {
+                userData.competences = userData.competences.filter(c => c !== competenceName);
             }
-            
-            // Retrait systématique du tableau competences
-            userData.competences = userData.competences.filter(c => c !== competenceName);
 
-            // 5. Gestion des incompatibilités
             if (competenceName === "Chômeur") {
                 userData.competences = userData.competences.filter(c => c !== "Travailleur");
             } else if (competenceName === "Travailleur") {
                 userData.competences = userData.competences.filter(c => c !== "Chômeur");
             }
 
-            // 6. Sauvegarde FORCÉE
             playerCompetencies[userId] = userData;
             fs.writeFileSync(COMPETENCIES_FILE, JSON.stringify(playerCompetencies, null, 2));
-            fs.fsyncSync(fs.openSync(COMPETENCIES_FILE, 'r+')); // Force l'écriture physique
 
-            // 7. Réponse
             const embed = new EmbedBuilder()
                 .setColor('#4CAF50')
                 .setTitle(`♻️ ${competenceName} vendue`)
-                .setDescription(`+${refund} vcoins`)
+                .setDescription(`+${refund} vcoins (50% du prix d'achat)`)
                 .addFields(
                     { name: 'Nouveau solde', value: `${getUserBalance(userId)} vcoins`, inline: true },
-                    { name: 'Compétences restantes', value: userData.competences.join(', ') || 'Aucune' }
+                    { name: 'Compétences restantes', value: 
+                        competenceName === "Antivol" 
+                            ? `Antivol (${userData.antivol.count}/3)`
+                            : userData.competences.join(', ') || 'Aucune' 
+                    }
                 );
 
             await interaction.reply({ embeds: [embed], ephemeral: true });

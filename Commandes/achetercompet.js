@@ -4,19 +4,19 @@ const fs = require('fs');
 const path = require('path');
 const COMPETENCIES_FILE = path.join(__dirname, '../data/competencies.json');
 
-let playerCompetencies = {};
-try {
-    const data = fs.readFileSync(COMPETENCIES_FILE, 'utf8');
-    playerCompetencies = JSON.parse(data);
-    console.log('Compétences chargées avec succès');
-} catch (error) {
-    console.error('Erreur de chargement, création nouveau fichier:', error);
-    playerCompetencies = {};
-    fs.writeFileSync(COMPETENCIES_FILE, JSON.stringify({}, null, 2));
+function reloadCompetencies() {
+    try {
+        const data = fs.readFileSync(COMPETENCIES_FILE, 'utf8');
+        return JSON.parse(data);
+    } catch (error) {
+        console.error('Erreur de rechargement, création nouveau fichier:', error);
+        fs.writeFileSync(COMPETENCIES_FILE, JSON.stringify({}, null, 2));
+        return {};
+    }
 }
 
-function saveCompetencies() {
-    fs.writeFileSync(COMPETENCIES_FILE, JSON.stringify(playerCompetencies, null, 2));
+function saveCompetencies(data) {
+    fs.writeFileSync(COMPETENCIES_FILE, JSON.stringify(data, null, 2));
     console.log('Compétences sauvegardées');
 }
 
@@ -55,6 +55,8 @@ module.exports = {
         try {
             const userId = interaction.user.id;
             const competenceInput = interaction.options.getString("competence").toLowerCase();
+
+            let playerCompetencies = reloadCompetencies();
             
             const competenceEntry = Object.entries(AVAILABLE_COMPETENCIES).find(
                 ([name]) => name.toLowerCase() === competenceInput
@@ -125,7 +127,7 @@ module.exports = {
                     playerCompetencies[userId].competences.push("Antivol");
                 }
 
-                saveCompetencies();
+                saveCompetencies(playerCompetencies);
                 return interaction.reply({ 
                     content: `✅ Achat réussi! Antivol (${playerCompetencies[userId].antivol.count}/3) pour ${competPrice} vcoins.`,
                     ephemeral: true
@@ -150,7 +152,7 @@ module.exports = {
             
                 updateUserBalance(userId, -competPrice);
                 playerCompetencies[userId].competences.push("Offshore");
-                saveCompetencies();
+                saveCompetencies(playerCompetencies);
             
                 return interaction.reply({ 
                     content: `✅ Compte offshore ouvert! Vous pouvez maintenant protéger 50% de votre solde des taxes. Coût: ${competPrice} vcoins.`,
@@ -175,7 +177,7 @@ module.exports = {
 
             updateUserBalance(userId, -competPrice);
             playerCompetencies[userId].competences.push(competenceName);
-            saveCompetencies();
+            saveCompetencies(playerCompetencies);
 
             await interaction.reply({ 
                 content: `✅ Achat réussi! Vous avez acquis la compétence: **${competenceName}** pour **${competPrice} vcoins**.`,
