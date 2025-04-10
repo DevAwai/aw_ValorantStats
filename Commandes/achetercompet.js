@@ -1,37 +1,13 @@
 const { getUserBalance, updateUserBalance } = require('../utils/creditsManager');
-const { handleError } = require('../utils/errorHandler');
-const fs = require('fs');
-const path = require('path');
-const COMPETENCIES_FILE = path.join(__dirname, '../data/competencies.json');
+const { loadCompetencies, saveCompetencies } = require('../utils/competenciesManager');
+const { EmbedBuilder } = require('discord.js');
 
-function reloadCompetencies() {
-    try {
-        const data = fs.readFileSync(COMPETENCIES_FILE, 'utf8');
-        return JSON.parse(data);
-    } catch (error) {
-        console.error('Erreur de rechargement, création nouveau fichier:', error);
-        fs.writeFileSync(COMPETENCIES_FILE, JSON.stringify({}, null, 2));
-        return {};
-    }
-}
-
-function saveCompetencies(data) {
-    fs.writeFileSync(COMPETENCIES_FILE, JSON.stringify(data, null, 2));
-    console.log('Compétences sauvegardées');
-}
-
-const AVAILABLE_COMPETENCIES = {
-    "Voleur": { price: 10000 },
-    "Travailleur": { price: 8000 },
-    "Antivol": { 
-        price: 10000,
-        max: 3 
-    },
-    "Chômeur": { price: 20000 },
-    "Offshore": { 
-        price: 50000,
-        max: 1
-    }
+const COMPETENCES = {
+    "Voleur": { price: 10000, emoji: "🕵️‍♂️" },
+    "Travailleur": { price: 15000, emoji: "💼" },
+    "Antivol": { price: 10000, emoji: "🛡️", max: 3 },
+    "Chômeur": { price: 20000, emoji: "🛌" },
+    "Offshore": { price: 50000, emoji: "🏦", max: 1 }
 };
 
 module.exports = {
@@ -44,8 +20,8 @@ module.exports = {
             name: "competence",
             description: "La compétence à acheter",
             required: true,
-            choices: Object.keys(AVAILABLE_COMPETENCIES).map(comp => ({
-                name: comp,
+            choices: Object.keys(COMPETENCES).map(comp => ({
+                name: `${comp} (${COMPETENCES[comp].price} vcoins)`,
                 value: comp.toLowerCase()
             }))
         }
@@ -56,111 +32,51 @@ module.exports = {
             const userId = interaction.user.id;
             const competenceInput = interaction.options.getString("competence").toLowerCase();
 
-            let playerCompetencies = reloadCompetencies();
+            const [competenceName, competenceData] = Object.entries(COMPETENCES)
+                .find(([name]) => name.toLowerCase() === competenceInput) || [];
             
-            const competenceEntry = Object.entries(AVAILABLE_COMPETENCIES).find(
-                ([name]) => name.toLowerCase() === competenceInput
-            );
-            
-            if (!competenceEntry) {
+            if (!competenceName) {
                 return interaction.reply({ 
                     content: "❌ Cette compétence n'existe pas!", 
                     ephemeral: true 
                 });
             }
-            
-            const [competenceName, competenceData] = competenceEntry;
-            const competPrice = competenceData.price;
 
-            if (!playerCompetencies[userId]) {
-                playerCompetencies[userId] = {
-                    competences: [],
-                    antivol: { count: 0 }
-                };
-            } else {
-                if (!playerCompetencies[userId].competences) {
-                    playerCompetencies[userId].competences = [];
-                }
-                if (!playerCompetencies[userId].antivol) {
-                    playerCompetencies[userId].antivol = { count: 0 };
-                }
-            }
+            const playerCompetencies = await loadCompetencies();
+            const userCompetencies = playerCompetencies[userId] || { 
+                competences: [], 
+                antivol: { count: 0 } 
+            };
 
-            if (competenceName === "Chômeur") {
-                if (playerCompetencies[userId]?.competences?.includes("Travailleur")) {
-                    return interaction.reply({ 
-                        content: "❌ Vous ne pouvez pas être Chômeur si vous avez la compétence Travailleur!",
-                        ephemeral: true
-                    });
-                }
-            }
-
-            if (competenceName === "Travailleur") {
-                if (playerCompetencies[userId]?.competences?.includes("Chômeur")) {
-                    return interaction.reply({
-                        content: "❌ Vous devez d'abord abandonner votre statut de Chômeur!",
-                        ephemeral: true
-                    });
-                }
-            }
-
-            if (competenceName === "Antivol") {
-                if (playerCompetencies[userId].antivol.count >= 3) {
-                    return interaction.reply({ 
-                        content: "❌ Vous avez déjà le maximum d'Antivols (3)!", 
-                        ephemeral: true 
-                    });
-                }
-
-                const userBalance = getUserBalance(userId);
-                if (userBalance < competPrice) {
-                    return interaction.reply({ 
-                        content: `❌ Vous n'avez pas assez de vcoins! Il vous faut ${competPrice} vcoins.`, 
-                        ephemeral: true 
-                    });
-                }
-
-                updateUserBalance(userId, -competPrice);
-                playerCompetencies[userId].antivol.count++;
-                
-                if (!playerCompetencies[userId].competences.includes("Antivol")) {
-                    playerCompetencies[userId].competences.push("Antivol");
-                }
-
-                saveCompetencies(playerCompetencies);
+            if (competenceName === "Chômeur" && userCompetencies.competences.includes("Travailleur")) {
                 return interaction.reply({ 
-                    content: `✅ Achat réussi! Antivol (${playerCompetencies[userId].antivol.count}/3) pour ${competPrice} vcoins.`,
+                    content: "❌ Vous ne pouvez pas être Chômeur si vous avez la compétence Travailleur!",
                     ephemeral: true
                 });
             }
 
-            if (competenceName === "Offshore") {
-                if (playerCompetencies[userId]?.competences?.includes("Offshore")) {
-                    return interaction.reply({ 
-                        content: "❌ Vous possédez déjà un compte offshore!", 
-                        ephemeral: true 
-                    });
-                }
-            
-                const userBalance = getUserBalance(userId);
-                if (userBalance < competPrice) {
-                    return interaction.reply({ 
-                        content: `❌ Il vous faut ${competPrice} vcoins pour ouvrir un compte offshore!`, 
-                        ephemeral: true 
-                    });
-                }
-            
-                updateUserBalance(userId, -competPrice);
-                playerCompetencies[userId].competences.push("Offshore");
-                saveCompetencies(playerCompetencies);
-            
-                return interaction.reply({ 
-                    content: `✅ Compte offshore ouvert! Vous pouvez maintenant protéger 50% de votre solde des taxes. Coût: ${competPrice} vcoins.`,
+            if (competenceName === "Travailleur" && userCompetencies.competences.includes("Chômeur")) {
+                return interaction.reply({
+                    content: "❌ Vous devez d'abord abandonner votre statut de Chômeur!",
                     ephemeral: true
                 });
             }
 
-            if (playerCompetencies[userId].competences.includes(competenceName)) {
+            if (competenceName === "Antivol" && userCompetencies.antivol.count >= competenceData.max) {
+                return interaction.reply({ 
+                    content: `❌ Vous avez déjà le maximum d'Antivols (${competenceData.max})!`, 
+                    ephemeral: true 
+                });
+            }
+
+            if (competenceName === "Offshore" && userCompetencies.competences.includes("Offshore")) {
+                return interaction.reply({ 
+                    content: "❌ Vous possédez déjà un compte offshore!", 
+                    ephemeral: true 
+                });
+            }
+
+            if (userCompetencies.competences.includes(competenceName) && competenceName !== "Antivol") {
                 return interaction.reply({ 
                     content: "❌ Vous possédez déjà cette compétence!", 
                     ephemeral: true 
@@ -168,19 +84,34 @@ module.exports = {
             }
 
             const userBalance = getUserBalance(userId);
-            if (userBalance < competPrice) {
+            if (userBalance < competenceData.price) {
                 return interaction.reply({ 
-                    content: `❌ Vous n'avez pas assez de vcoins! Il vous faut ${competPrice} vcoins.`, 
+                    content: `❌ Il vous faut ${competenceData.price} vcoins pour "${competenceName}"!`, 
                     ephemeral: true 
                 });
             }
 
-            updateUserBalance(userId, -competPrice);
-            playerCompetencies[userId].competences.push(competenceName);
-            saveCompetencies(playerCompetencies);
+            updateUserBalance(userId, -competenceData.price);
+            
+            if (competenceName === "Antivol") {
+                userCompetencies.antivol.count++;
+                if (!userCompetencies.competences.includes("Antivol")) {
+                    userCompetencies.competences.push("Antivol");
+                }
+            } else {
+                userCompetencies.competences.push(competenceName);
+            }
+
+            playerCompetencies[userId] = userCompetencies;
+            await saveCompetencies(playerCompetencies);
+
+            let replyMessage = `✅ Achat réussi! ${competenceData.emoji} **${competenceName}** pour **${competenceData.price} vcoins**.`;
+            if (competenceName === "Antivol") {
+                replyMessage += ` (${userCompetencies.antivol.count}/${competenceData.max})`;
+            }
 
             await interaction.reply({ 
-                content: `✅ Achat réussi! Vous avez acquis la compétence: **${competenceName}** pour **${competPrice} vcoins**.`,
+                content: replyMessage,
                 ephemeral: true
             });
 

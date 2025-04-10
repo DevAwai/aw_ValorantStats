@@ -1,8 +1,13 @@
-const fs = require('fs');
-const path = require('path');
+const { loadCompetencies } = require('../utils/competenciesManager');
 const { EmbedBuilder } = require('discord.js');
 
-const competenciesPath = path.join(__dirname, '../data/competencies.json');
+const COMPETENCE_EMOJIS = {
+    "Voleur": "🕵️‍♂️",
+    "Travailleur": "💼",
+    "Antivol": "🛡️",
+    "Chômeur": "🛌",
+    "Offshore": "🏦"
+};
 
 module.exports = {
     name: "mescompet",
@@ -13,70 +18,34 @@ module.exports = {
     async execute(interaction) {
         try {
             const userId = interaction.user.id;
-            let playerCompetencies = {};
-
-            try {
-                playerCompetencies = JSON.parse(fs.readFileSync(competenciesPath, 'utf8'));
-            } catch (error) {
-                console.error("Erreur lecture competencies.json:", error);
-                playerCompetencies = {};
-            }
-
+            const playerCompetencies = await loadCompetencies();
             const userData = playerCompetencies[userId] || { competences: [], antivol: { count: 0 } };
-            const competences = userData.competences || [];
             
             const embed = new EmbedBuilder()
                 .setColor('#0099ff')
                 .setTitle('📜 Vos Compétences')
                 .setThumbnail(interaction.user.displayAvatarURL())
-                .setTimestamp()
-                .setFooter({ text: interaction.user.username });
+                .setFooter({ text: interaction.user.username })
+                .setTimestamp();
 
-            if (competences.length === 0) {
+            if (userData.competences.length === 0) {
                 embed.setDescription('❌ Vous ne possédez aucune compétence actuellement.');
             } else {
-                const emojis = {
-                    voleur: '🕵️‍♂️',
-                    travailleur: '💼',
-                    antivol: '🛡️',
-                    chômeur: '🛌',
-                    offshore: '🏦',
-                    default: '🔹'
-                };
+                const fields = userData.competences.map(comp => {
+                    const emoji = COMPETENCE_EMOJIS[comp] || "🔹";
+                    let value = '\u200B';
 
-                const fields = competences.map(comp => {
-                    const compLower = comp.toLowerCase();
-                    if (compLower === 'antivol') {
-                        return {
-                            name: `${emojis.antivol} ${comp}`,
-                            value: `Protections: ${userData.antivol.count}/3`,
-                            inline: false
-                        };
+                    if (comp === "Antivol") {
+                        value = `Protections: ${userData.antivol.count}/3`;
+                    } else if (comp === "Chômeur") {
+                        value = 'Allocation: 5000 vcoins/5min (en ligne)';
+                    } else if (comp === "Offshore") {
+                        value = 'Protection fiscale: 50% du solde protégé';
                     }
-                    if (compLower === 'chômeur') {
-                        return {
-                            name: `${emojis.chômeur} ${comp}`,
-                            value: 'Allocation: 5000 vcoins/5min (en ligne)',
-                            inline: false
-                        };
-                    }
-                    if (compLower === 'offshore') {
-                        return {
-                            name: `${emojis.offshore} ${comp}`,
-                            value: 'Protection fiscale: 50% du solde protégé',
-                            inline: false
-                        };
-                    }
-                    if (compLower === 'voleur') {
-                        return {
-                            name: `${emojis.offshore} ${comp}`,
-                            value: 'Tu peux voler comme un arabe mtn',
-                            inline: false
-                        };
-                    }
+
                     return {
-                        name: `${emojis[compLower] || emojis.default} ${comp}`,
-                        value: '\u200B',
+                        name: `${emoji} ${comp}`,
+                        value: value,
                         inline: false
                     };
                 });
@@ -89,7 +58,7 @@ module.exports = {
         } catch (error) {
             console.error("Erreur dans mescompet:", error);
             await interaction.reply({
-                content: "❌ Une erreur est survenue",
+                content: "❌ Une erreur est survenue lors de l'affichage de vos compétences",
                 ephemeral: true
             });
         }
