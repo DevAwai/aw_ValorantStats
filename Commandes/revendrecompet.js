@@ -79,7 +79,6 @@ module.exports = {
             } else {
                 userData.competences = userData.competences.filter(c => c !== competenceName);
             }
-
             if (competenceName === "Chômeur") {
                 userData.competences = userData.competences.filter(c => c !== "Travailleur");
             } else if (competenceName === "Travailleur") {

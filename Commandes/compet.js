@@ -112,7 +112,7 @@ module.exports = {
                                 .setTitle('🛌 Chômeur')
                                 .setDescription('Allocation de chômage régulière')
                                 .addFields(
-                                    { name: 'Prix', value: '1 vcoin (symbolique)', inline: true },
+                                    { name: 'Prix', value: '20,000 vcoin', inline: true },
                                     { name: 'Allocation', value: '5000 vcoins toutes les 5 minutes', inline: true },
                                     { name: 'Condition', value: 'Doit être en ligne sur Discord', inline: true },
                                     { name: 'Incompatibilité', value: 'Impossible avec la compétence Travailleur', inline: false }
