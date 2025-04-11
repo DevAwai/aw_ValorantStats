@@ -107,8 +107,17 @@ module.exports = {
         if (!interaction.isStringSelectMenu()) return;
 
         try {
+            // Vérifier que la valeur est bien sélectionnée
+            if (!interaction.values || interaction.values.length === 0) {
+                return interaction.reply({
+                    content: "❌ Vous devez sélectionner un type de pari",
+                    ephemeral: true
+                }).catch(console.error);
+            }
+
             const betType = interaction.values[0];
-            
+            await interaction.deferUpdate().catch(console.error);
+
             if (betType === 'color') {
                 const row = new ActionRowBuilder().addComponents(
                     new ButtonBuilder()
@@ -121,14 +130,14 @@ module.exports = {
                         .setStyle(ButtonStyle.Secondary)
                 );
 
-                await interaction.update({
+                await interaction.editReply({
                     content: `🎰 Vous misez ${betAmount} VCOINS sur une couleur`,
                     components: [row]
                 }).catch(console.error);
             } 
             else if (betType === 'straight') {
                 const rows = this.createNumberButtons();
-                await interaction.update({
+                await interaction.editReply({
                     content: `🎰 Vous misez ${betAmount} VCOINS sur un numéro`,
                     components: rows
                 }).catch(console.error);
@@ -149,16 +158,21 @@ module.exports = {
                         .setStyle(ButtonStyle.Primary)
                 );
 
-                await interaction.update({
+                await interaction.editReply({
                     content: `🎰 Vous misez ${betAmount} VCOINS sur une douzaine`,
                     components: [row]
                 }).catch(console.error);
             }
         } catch (error) {
             console.error('Erreur dans handleBetType:', error);
-            if (!interaction.replied) {
+            if (!interaction.replied && !interaction.deferred) {
                 await interaction.reply({
                     content: "❌ Erreur lors du choix du type de pari",
+                    ephemeral: true
+                }).catch(console.error);
+            } else if (interaction.deferred) {
+                await interaction.followUp({
+                    content: "❌ Erreur lors du traitement de votre pari",
                     ephemeral: true
                 }).catch(console.error);
             }

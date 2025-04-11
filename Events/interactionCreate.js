@@ -55,6 +55,38 @@ module.exports = async (bot, interaction) => {
                 });
             }
         }
+        else if (interaction.isStringSelectMenu()) {
+            try {
+                if (interaction.customId === 'roulette_bet_type') {
+                    const rouletteCmd = require('../Commandes/roulette');
+                    const betAmount = interaction.message.embeds[0]?.fields
+                        .find(f => f.name === 'Mise actuelle')?.value
+                        .replace(' VCOINS', '');
+                    
+                    if (!betAmount) {
+                        return interaction.reply({
+                            content: "❌ Impossible de déterminer le montant de la mise",
+                            ephemeral: true
+                        }).catch(console.error);
+                    }
+
+                    await rouletteCmd.handleBetType(interaction, parseInt(betAmount));
+                }
+            } catch (error) {
+                console.error("Erreur du menu déroulant roulette:", error);
+                if (!interaction.replied) {
+                    await interaction.reply({
+                        content: "❌ Échec du traitement de votre sélection",
+                        ephemeral: true
+                    }).catch(console.error);
+                } else {
+                    await interaction.followUp({
+                        content: "❌ Erreur lors du traitement",
+                        ephemeral: true
+                    }).catch(console.error);
+                }
+            }
+        }
     } catch (error) {
         console.error("Erreur d'interaction:", error);
         
