@@ -13,6 +13,8 @@ const JOBS_CONFIG = {
 const GLOBAL_WORK_COOLDOWN = 1000; 
 
 module.exports = async (bot, interaction) => {
+    if (!interaction.isCommand() && !interaction.isButton() && !interaction.isStringSelectMenu()) return;
+
     try {
         if (interaction.type === InteractionType.ApplicationCommand) {
             const command = require(`../Commandes/${interaction.commandName}`);
@@ -20,7 +22,7 @@ module.exports = async (bot, interaction) => {
                 return interaction.reply({ 
                     content: "❌ Commande non exécutable", 
                     ephemeral: true 
-                });
+                }).catch(console.error);
             }
             await command.execute(interaction);
         } 
@@ -61,16 +63,27 @@ module.exports = async (bot, interaction) => {
         }
     } catch (error) {
         console.error("Erreur d'interaction:", error);
-        if (!interaction.replied && !interaction.deferred) {
-            await interaction.reply({ 
-                content: "❌ Erreur de traitement", 
-                ephemeral: true 
-            });
-        } else {
-            await interaction.followUp({ 
-                content: "❌ Une erreur est survenue", 
-                ephemeral: true 
-            });
+        
+        try {
+            if (interaction.deferred) {
+                await interaction.followUp({ 
+                    content: "❌ Une erreur est survenue", 
+                    ephemeral: true 
+                }).catch(console.error);
+            } else if (interaction.replied) {
+                await interaction.editReply({ 
+                    content: "❌ Erreur de traitement", 
+                    embeds: [],
+                    components: []
+                }).catch(console.error);
+            } else {
+                await interaction.reply({ 
+                    content: "❌ Erreur de traitement", 
+                    ephemeral: true 
+                }).catch(console.error);
+            }
+        } catch (err) {
+            console.error("Échec de l'envoi du message d'erreur:", err);
         }
     }
 };

@@ -44,100 +44,124 @@ module.exports = {
     }],
 
     async execute(interaction) {
-        const userId = interaction.user.id;
-        const betAmount = interaction.options.getInteger('mise');
+        if (!interaction.isCommand()) return;
 
-        if (!checkCooldown(userId, this.name, this.cooldown)) {
-            return interaction.reply({ 
-                ephemeral: true, 
-                content: `⏳ Vous devez attendre avant de rejouer!` 
-            });
+        try {
+            const userId = interaction.user.id;
+            const betAmount = interaction.options.getInteger('mise');
+
+            if (!checkCooldown(userId, this.name, this.cooldown)) {
+                return interaction.reply({ 
+                    ephemeral: true, 
+                    content: `⏳ Vous devez attendre avant de rejouer!` 
+                }).catch(console.error);
+            }
+
+            createUserIfNotExists(userId);
+            const balance = getUserBalance(userId);
+
+            if (betAmount > balance) {
+                return interaction.reply({ 
+                    ephemeral: true, 
+                    content: `❌ Solde insuffisant! Vous avez ${balance} VCOINS` 
+                }).catch(console.error);
+            }
+
+            setCooldown(userId, this.name, this.cooldown);
+
+            const betTypeMenu = new StringSelectMenuBuilder()
+                .setCustomId('roulette_bet_type')
+                .setPlaceholder('Choisissez votre type de pari')
+                .addOptions([
+                    { label: 'Rouge/Noir', description: 'Paiement 1:1', value: 'color' },
+                    { label: 'Numéro plein', description: 'Paiement 35:1', value: 'straight' },
+                    { label: 'Douzaine', description: 'Paiement 2:1', value: 'dozen' }
+                ]);
+
+            const embed = new EmbedBuilder()
+                .setTitle('🎰 **ROULETTE CASINO**')
+                .setDescription(`💰 **Mise :** ${betAmount} VCOINS\nChoisissez votre type de pari :`)
+                .setColor('#E74C3C')
+                .addFields(
+                    { name: 'Votre solde', value: `${balance} VCOINS`, inline: true },
+                    { name: 'Mise actuelle', value: `${betAmount} VCOINS`, inline: true }
+                );
+
+            await interaction.reply({ 
+                embeds: [embed], 
+                components: [new ActionRowBuilder().addComponents(betTypeMenu)],
+                ephemeral: false
+            }).catch(console.error);
+        } catch (error) {
+            console.error('Erreur dans execute:', error);
+            if (!interaction.replied) {
+                await interaction.reply({
+                    content: "❌ Une erreur est survenue lors du démarrage de la roulette",
+                    ephemeral: true
+                }).catch(console.error);
+            }
         }
-
-        createUserIfNotExists(userId);
-        const balance = getUserBalance(userId);
-
-        if (betAmount > balance) {
-            return interaction.reply({ 
-                ephemeral: true, 
-                content: `❌ Solde insuffisant! Vous avez ${balance} VCOINS` 
-            });
-        }
-
-        setCooldown(userId, this.name, this.cooldown);
-
-        const betTypeMenu = new StringSelectMenuBuilder()
-            .setCustomId('roulette_bet_type')
-            .setPlaceholder('Choisissez votre type de pari')
-            .addOptions([
-                { label: 'Rouge/Noir', description: 'Paiement 1:1', value: 'color' },
-                { label: 'Numéro plein', description: 'Paiement 35:1', value: 'straight' },
-                { label: 'Douzaine', description: 'Paiement 2:1', value: 'dozen' }
-            ]);
-
-        const embed = new EmbedBuilder()
-            .setTitle('🎰 **ROULETTE CASINO**')
-            .setDescription(`💰 **Mise :** ${betAmount} VCOINS\nChoisissez votre type de pari :`)
-            .setColor('#E74C3C')
-            .addFields(
-                { name: 'Votre solde', value: `${balance} VCOINS`, inline: true },
-                { name: 'Mise actuelle', value: `${betAmount} VCOINS`, inline: true }
-            );
-
-        await interaction.reply({ 
-            embeds: [embed], 
-            components: [new ActionRowBuilder().addComponents(betTypeMenu)],
-            ephemeral: false
-        });
     },
 
     async handleBetType(interaction, betAmount) {
-        const betType = interaction.values[0];
-        
-        if (betType === 'color') {
-            const row = new ActionRowBuilder().addComponents(
-                new ButtonBuilder()
-                    .setCustomId('roulette_red')
-                    .setLabel('ROUGE')
-                    .setStyle(ButtonStyle.Danger),
-                new ButtonBuilder()
-                    .setCustomId('roulette_black')
-                    .setLabel('NOIR')
-                    .setStyle(ButtonStyle.Secondary)
-            );
+        if (!interaction.isStringSelectMenu()) return;
 
-            await interaction.update({
-                content: `🎰 Vous misez ${betAmount} VCOINS sur une couleur`,
-                components: [row]
-            });
-        } 
-        else if (betType === 'straight') {
-            const rows = this.createNumberButtons();
-            await interaction.update({
-                content: `🎰 Vous misez ${betAmount} VCOINS sur un numéro`,
-                components: rows
-            });
-        }
-        else if (betType === 'dozen') {
-            const row = new ActionRowBuilder().addComponents(
-                new ButtonBuilder()
-                    .setCustomId('roulette_dozen_first')
-                    .setLabel('1-12')
-                    .setStyle(ButtonStyle.Primary),
-                new ButtonBuilder()
-                    .setCustomId('roulette_dozen_second')
-                    .setLabel('13-24')
-                    .setStyle(ButtonStyle.Primary),
-                new ButtonBuilder()
-                    .setCustomId('roulette_dozen_third')
-                    .setLabel('25-36')
-                    .setStyle(ButtonStyle.Primary)
-            );
+        try {
+            const betType = interaction.values[0];
+            
+            if (betType === 'color') {
+                const row = new ActionRowBuilder().addComponents(
+                    new ButtonBuilder()
+                        .setCustomId('roulette_red')
+                        .setLabel('ROUGE')
+                        .setStyle(ButtonStyle.Danger),
+                    new ButtonBuilder()
+                        .setCustomId('roulette_black')
+                        .setLabel('NOIR')
+                        .setStyle(ButtonStyle.Secondary)
+                );
 
-            await interaction.update({
-                content: `🎰 Vous misez ${betAmount} VCOINS sur une douzaine`,
-                components: [row]
-            });
+                await interaction.update({
+                    content: `🎰 Vous misez ${betAmount} VCOINS sur une couleur`,
+                    components: [row]
+                }).catch(console.error);
+            } 
+            else if (betType === 'straight') {
+                const rows = this.createNumberButtons();
+                await interaction.update({
+                    content: `🎰 Vous misez ${betAmount} VCOINS sur un numéro`,
+                    components: rows
+                }).catch(console.error);
+            }
+            else if (betType === 'dozen') {
+                const row = new ActionRowBuilder().addComponents(
+                    new ButtonBuilder()
+                        .setCustomId('roulette_dozen_first')
+                        .setLabel('1-12')
+                        .setStyle(ButtonStyle.Primary),
+                    new ButtonBuilder()
+                        .setCustomId('roulette_dozen_second')
+                        .setLabel('13-24')
+                        .setStyle(ButtonStyle.Primary),
+                    new ButtonBuilder()
+                        .setCustomId('roulette_dozen_third')
+                        .setLabel('25-36')
+                        .setStyle(ButtonStyle.Primary)
+                );
+
+                await interaction.update({
+                    content: `🎰 Vous misez ${betAmount} VCOINS sur une douzaine`,
+                    components: [row]
+                }).catch(console.error);
+            }
+        } catch (error) {
+            console.error('Erreur dans handleBetType:', error);
+            if (!interaction.replied) {
+                await interaction.reply({
+                    content: "❌ Erreur lors du choix du type de pari",
+                    ephemeral: true
+                }).catch(console.error);
+            }
         }
     },
 
@@ -169,42 +193,56 @@ module.exports = {
     },
 
     async spinWheel(interaction, betDetails) {
-        const { betType, betValue, betAmount } = betDetails;
-        
-        const spinEmbed = new EmbedBuilder()
-            .setTitle('🎡 **La roue tourne...**')
-            .setDescription('La bille roule...')
-            .setColor('#3498DB');
+        if (!interaction.isButton() && !interaction.isStringSelectMenu()) return;
 
-        await interaction.update({ 
-            embeds: [spinEmbed],
-            components: [] 
-        });
+        try {
+            const { betType, betValue, betAmount } = betDetails;
+            
+            const spinEmbed = new EmbedBuilder()
+                .setTitle('🎡 **La roue tourne...**')
+                .setDescription('La bille roule...')
+                .setColor('#3498DB');
 
-        await new Promise(resolve => setTimeout(resolve, 3000));
+            await interaction.deferUpdate().catch(console.error);
 
-        const winner = ROULETTE_CONFIG.NUMBERS[Math.floor(Math.random() * 37)];
-        const result = this.calculateResult(betType, betValue, winner);
-        const payout = result.win ? betAmount * ROULETTE_CONFIG.PAYOUTS[betType] : -betAmount;
+            await new Promise(resolve => setTimeout(resolve, 3000));
 
-        updateUserBalance(interaction.user.id, payout);
+            const winner = ROULETTE_CONFIG.NUMBERS[Math.floor(Math.random() * 37)];
+            const result = this.calculateResult(betType, betValue, winner);
+            const payout = result.win ? betAmount * ROULETTE_CONFIG.PAYOUTS[betType] : -betAmount;
 
-        const resultEmbed = new EmbedBuilder()
-            .setTitle(result.win ? '🎉 **VOUS GAGNEZ !**' : '💔 **Vous avez perdu...**')
-            .setColor(result.win ? '#2ECC71' : '#E74C3C')
-            .setDescription(`**Numéro gagnant :** ${winner.number} (${winner.color.toUpperCase()})`)
-            .addFields(
-                { name: 'Votre pari', value: this.formatBet(betType, betValue), inline: true },
-                { name: 'Résultat', value: result.win ? '✅ GAGNÉ' : '❌ PERDU', inline: true },
-                { name: 'Gains', value: `${payout >= 0 ? '+' : ''}${payout} VCOINS`, inline: true },
-                { name: 'Nouveau solde', value: `${getUserBalance(interaction.user.id)} VCOINS` }
-            )
-            .setFooter({ text: 'Tapez /roulette pour rejouer' });
+            updateUserBalance(interaction.user.id, payout);
 
-        await interaction.editReply({ 
-            embeds: [resultEmbed],
-            components: [] 
-        });
+            const resultEmbed = new EmbedBuilder()
+                .setTitle(result.win ? '🎉 **VOUS GAGNEZ !**' : '💔 **Vous avez perdu...**')
+                .setColor(result.win ? '#2ECC71' : '#E74C3C')
+                .setDescription(`**Numéro gagnant :** ${winner.number} (${winner.color.toUpperCase()})`)
+                .addFields(
+                    { name: 'Votre pari', value: this.formatBet(betType, betValue), inline: true },
+                    { name: 'Résultat', value: result.win ? '✅ GAGNÉ' : '❌ PERDU', inline: true },
+                    { name: 'Gains', value: `${payout >= 0 ? '+' : ''}${payout} VCOINS`, inline: true },
+                    { name: 'Nouveau solde', value: `${getUserBalance(interaction.user.id)} VCOINS` }
+                )
+                .setFooter({ text: 'Tapez /roulette pour rejouer' });
+
+            await interaction.editReply({ 
+                embeds: [resultEmbed],
+                components: [] 
+            }).catch(console.error);
+        } catch (error) {
+            console.error('Erreur dans spinWheel:', error);
+            if (!interaction.replied && !interaction.deferred) {
+                await interaction.reply({
+                    content: "❌ Erreur lors du spin de la roulette",
+                    ephemeral: true
+                }).catch(console.error);
+            } else if (interaction.deferred) {
+                await interaction.followUp({
+                    content: "❌ Erreur lors du spin de la roulette",
+                    ephemeral: true
+                }).catch(console.error);
+            }
+        }
     },
 
     calculateResult(betType, betValue, winningNumber) {
