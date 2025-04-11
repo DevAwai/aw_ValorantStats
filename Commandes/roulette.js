@@ -21,8 +21,7 @@ module.exports = {
             type: "integer",
             name: "montant",
             description: "Montant de vcoins à miser",
-            required: true,
-            min_value: 1
+            required: true
         }
     ],
 
@@ -47,30 +46,38 @@ module.exports = {
         };
 
         const numero = Math.floor(Math.random() * 37);
-        const couleurGagnante = numero === 0 ? 'vert' : numero % 2 === 0 ? 'noir' : 'rouge';
+        let couleurGagnante = numero === 0 ? 'vert' : numero % 2 === 0 ? 'noir' : 'rouge';
 
-        const animationEmbed = new EmbedBuilder()
+        const animationFrames = [
+            '🎯 | 🔴 ⚫ 🟩',
+            '🎯 | ⚫ 🟩 🔴',
+            '🎯 | 🟩 🔴 ⚫',
+            '🎯 | 🔴 ⚫ 🟩',
+            '🎯 | ⚫ 🟩 🔴',
+            '🎯 | 🟩 🔴 ⚫',
+            '🎯 | 🎉 Résultat imminent...'
+        ];
+
+        const embedInitial = new EmbedBuilder()
             .setTitle('🎰 Roulette en cours...')
-            .setColor('#2f3136')
-            .setDescription(`Vous misez **${montant} vcoins** sur ${couleurs[couleur].emoji} **${couleur.toUpperCase()}**.\n\n🎡 La roue tourne...`);
+            .setDescription(`Vous misez **${montant} vcoins** sur ${couleurs[couleur].emoji} **${couleur.toUpperCase()}**.\n\n🔄 Lancement de la roue...`)
+            .setColor('#2f3136');
 
-        await interaction.reply({ embeds: [animationEmbed], ephemeral: true });
+        await interaction.reply({ embeds: [embedInitial], ephemeral: true });
 
-        const animationSteps = 12;
-        for (let i = 0; i < animationSteps; i++) {
-            const progress = '■'.repeat(i % 5 + 1) + '□'.repeat(4 - (i % 5));
-            const spinningEmbed = EmbedBuilder.from(animationEmbed)
-                .setDescription(`Vous misez **${montant} vcoins** sur ${couleurs[couleur].emoji} **${couleur.toUpperCase()}**.\n\n🎡 ${progress}`);
-            await new Promise(resolve => setTimeout(resolve, 300));
-            await interaction.editReply({ embeds: [spinningEmbed] });
+        for (let i = 0; i < animationFrames.length; i++) {
+            await new Promise(resolve => setTimeout(resolve, 500));
+            const embedSpin = EmbedBuilder.from(embedInitial)
+                .setDescription(`Vous misez **${montant} vcoins** sur ${couleurs[couleur].emoji} **${couleur.toUpperCase()}**.\n\n${animationFrames[i]}`);
+            await interaction.editReply({ embeds: [embedSpin] });
         }
 
-        await new Promise(resolve => setTimeout(resolve, 500));
+        await new Promise(resolve => setTimeout(resolve, 1000));
 
         const embedResult = new EmbedBuilder()
             .setTitle('🎰 Résultat de la roulette')
             .addFields(
-                { name: 'Numéro tiré 🎯', value: `**${numero}**`, inline: true },
+                { name: 'Numéro tiré', value: `${numero}`, inline: true },
                 { name: 'Couleur gagnante', value: `${couleurs[couleurGagnante].emoji} ${couleurGagnante.toUpperCase()}`, inline: true }
             )
             .setColor(couleurGagnante === 'rouge' ? 'Red' : couleurGagnante === 'noir' ? 'DarkGrey' : 'Green');
@@ -78,10 +85,10 @@ module.exports = {
         if (couleur === couleurGagnante) {
             const gain = montant * couleurs[couleur].multiplier;
             updateUserBalance(userId, gain);
-            embedResult.setDescription(`✅ **Félicitations !** Vous avez remporté **${gain} vcoins** !`);
+            embedResult.setDescription(`✅ Bravo ! Vous avez gagné **${gain} vcoins** !`);
         } else {
             updateUserBalance(userId, -montant);
-            embedResult.setDescription(`❌ Vous avez perdu **${montant} vcoins**. Mieux vaut tenter sa chance à nouveau !`);
+            embedResult.setDescription(`❌ Perdu ! Vous perdez **${montant} vcoins**.`);
         }
 
         await interaction.editReply({ embeds: [embedResult] });
