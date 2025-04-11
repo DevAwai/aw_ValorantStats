@@ -24,14 +24,51 @@ module.exports = async (bot, interaction) => {
             }
             await command.execute(interaction);
         } 
-        else if (interaction.isButton() && interaction.customId.startsWith('work_')) {
-            await handleWorkInteraction(interaction);
+        else if (interaction.isButton()) {
+            if (interaction.customId.startsWith('work_')) {
+                await handleWorkInteraction(interaction);
+            }
+            else if (interaction.customId === 'roulette_red' || interaction.customId === 'roulette_black') {
+                const rouletteCmd = require('../Commandes/roulette');
+                await rouletteCmd.spinWheel(interaction, {
+                    betType: 'color',
+                    betValue: interaction.customId === 'roulette_red' ? 'red' : 'black',
+                    betAmount: interaction.message.embeds[0].fields.find(f => f.name === 'Mise actuelle').value.replace(' VCOINS', '')
+                });
+            }
+        }
+        else if (interaction.isStringSelectMenu()) {
+            if (interaction.customId === 'roulette_bet_type') {
+                const rouletteCmd = require('../Commandes/roulette');
+                await rouletteCmd.handleBetType(interaction, interaction.message.embeds[0].fields.find(f => f.name === 'Mise actuelle').value.replace(' VCOINS', ''));
+            }
+            else if (interaction.customId === 'roulette_number') {
+                const rouletteCmd = require('../Commandes/roulette');
+                await rouletteCmd.spinWheel(interaction, {
+                    betType: 'straight',
+                    betValue: interaction.values[0],
+                    betAmount: interaction.message.embeds[0].fields.find(f => f.name === 'Mise actuelle').value.replace(' VCOINS', '')
+                });
+            }
+            else if (interaction.customId === 'roulette_dozen') {
+                const rouletteCmd = require('../Commandes/roulette');
+                await rouletteCmd.spinWheel(interaction, {
+                    betType: 'dozen',
+                    betValue: interaction.values[0],
+                    betAmount: interaction.message.embeds[0].fields.find(f => f.name === 'Mise actuelle').value.replace(' VCOINS', '')
+                });
+            }
         }
     } catch (error) {
         console.error("Erreur d'interaction:", error);
         if (!interaction.replied && !interaction.deferred) {
             await interaction.reply({ 
                 content: "❌ Erreur de traitement", 
+                ephemeral: true 
+            });
+        } else {
+            await interaction.followUp({ 
+                content: "❌ Une erreur est survenue", 
                 ephemeral: true 
             });
         }
