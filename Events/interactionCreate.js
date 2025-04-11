@@ -38,25 +38,19 @@ module.exports = async (bot, interaction) => {
                     betAmount: interaction.message.embeds[0].fields.find(f => f.name === 'Mise actuelle').value.replace(' VCOINS', '')
                 });
             }
-        }
-        else if (interaction.isStringSelectMenu()) {
-            if (interaction.customId === 'roulette_bet_type') {
-                const rouletteCmd = require('../Commandes/roulette');
-                await rouletteCmd.handleBetType(interaction, interaction.message.embeds[0].fields.find(f => f.name === 'Mise actuelle').value.replace(' VCOINS', ''));
-            }
-            else if (interaction.customId === 'roulette_number') {
+            else if (interaction.customId.startsWith('roulette_num_')) {
                 const rouletteCmd = require('../Commandes/roulette');
                 await rouletteCmd.spinWheel(interaction, {
                     betType: 'straight',
-                    betValue: interaction.values[0],
+                    betValue: interaction.customId.replace('roulette_num_', ''),
                     betAmount: interaction.message.embeds[0].fields.find(f => f.name === 'Mise actuelle').value.replace(' VCOINS', '')
                 });
             }
-            else if (interaction.customId === 'roulette_dozen') {
+            else if (interaction.customId.startsWith('roulette_dozen_')) {
                 const rouletteCmd = require('../Commandes/roulette');
                 await rouletteCmd.spinWheel(interaction, {
                     betType: 'dozen',
-                    betValue: interaction.values[0],
+                    betValue: interaction.customId.replace('roulette_dozen_', ''),
                     betAmount: interaction.message.embeds[0].fields.find(f => f.name === 'Mise actuelle').value.replace(' VCOINS', '')
                 });
             }

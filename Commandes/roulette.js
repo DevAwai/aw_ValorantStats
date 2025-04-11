@@ -169,21 +169,20 @@ module.exports = {
         const rows = [];
         let currentRow = new ActionRowBuilder();
         
-        const numbersToShow = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12];
-        
-        numbersToShow.forEach(num => {
+        for (let num = 0; num <= 36; num++) {
             const btn = new ButtonBuilder()
                 .setCustomId(`roulette_num_${num}`)
                 .setLabel(num.toString())
                 .setStyle(num === 0 ? ButtonStyle.Success : 
-                        num % 2 === 1 ? ButtonStyle.Danger : ButtonStyle.Secondary);
+                        ROULETTE_CONFIG.NUMBERS.find(n => n.number === num).color === 'red' ? 
+                        ButtonStyle.Danger : ButtonStyle.Secondary);
             
             if (currentRow.components.length === 5) {
                 rows.push(currentRow);
                 currentRow = new ActionRowBuilder();
             }
             currentRow.addComponents(btn);
-        });
+        }
         
         if (currentRow.components.length > 0) {
             rows.push(currentRow);
