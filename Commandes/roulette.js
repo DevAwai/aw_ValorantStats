@@ -1,4 +1,4 @@
-const { EmbedBuilder, ActionRowBuilder, StringSelectMenuBuilder, ButtonBuilder, ButtonStyle } = require('discord.js');
+const { EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle, StringSelectMenuBuilder } = require('discord.js');
 const { getUserBalance, updateUserBalance, createUserIfNotExists } = require('../utils/creditsManager');
 const { checkCooldown, setCooldown } = require('../utils/cooldownManager');
 
@@ -93,82 +93,94 @@ module.exports = {
 
     async handleBetType(interaction, betAmount) {
         const betType = interaction.values[0];
-        let customId, components;
-
-        switch(betType) {
-            case 'color':
-                customId = 'roulette_color_bet';
-                components = [new ActionRowBuilder().addComponents(
-                    new ButtonBuilder()
-                        .setCustomId('roulette_red')
-                        .setLabel('ROUGE')
-                        .setStyle(ButtonStyle.Danger),
-                    new ButtonBuilder()
-                        .setCustomId('roulette_black')
-                        .setLabel('NOIR')
-                        .setStyle(ButtonStyle.Secondary)
-                )];
-                break;
-            case 'straight':
-                customId = 'roulette_number_bet';
-                components = [this.createNumberSelection()];
-                break;
-            case 'dozen':
-                customId = 'roulette_dozen_bet';
-                components = [this.createDozenSelection()];
-                break;
-        }
-
-        await interaction.update({
-            content: `🎰 Vous misez **${betAmount} VCOINS** sur **${this.getBetTypeName(betType)}**`,
-            components: components
-        });
-
-        return customId;
-    },
-
-    createNumberSelection() {
-        const numbers = Array.from({ length: 37 }, (_, i) => i);
-        return new StringSelectMenuBuilder()
-            .setCustomId('roulette_number')
-            .setPlaceholder('Sélectionnez un numéro...')
-            .addOptions(
-                numbers.map(num => ({
-                    label: num.toString(),
-                    value: num.toString(),
-                    emoji: num === 0 ? '🟢' : num % 2 === 1 ? '🔴' : '⚫'
-                }))
+        
+        if (betType === 'color') {
+            const row = new ActionRowBuilder().addComponents(
+                new ButtonBuilder()
+                    .setCustomId('roulette_red')
+                    .setLabel('ROUGE')
+                    .setStyle(ButtonStyle.Danger),
+                new ButtonBuilder()
+                    .setCustomId('roulette_black')
+                    .setLabel('NOIR')
+                    .setStyle(ButtonStyle.Secondary)
             );
+
+            await interaction.update({
+                content: `🎰 Vous misez ${betAmount} VCOINS sur une couleur`,
+                components: [row]
+            });
+        } 
+        else if (betType === 'straight') {
+            const rows = this.createNumberButtons();
+            await interaction.update({
+                content: `🎰 Vous misez ${betAmount} VCOINS sur un numéro`,
+                components: rows
+            });
+        }
+        else if (betType === 'dozen') {
+            const row = new ActionRowBuilder().addComponents(
+                new ButtonBuilder()
+                    .setCustomId('roulette_dozen_first')
+                    .setLabel('1-12')
+                    .setStyle(ButtonStyle.Primary),
+                new ButtonBuilder()
+                    .setCustomId('roulette_dozen_second')
+                    .setLabel('13-24')
+                    .setStyle(ButtonStyle.Primary),
+                new ButtonBuilder()
+                    .setCustomId('roulette_dozen_third')
+                    .setLabel('25-36')
+                    .setStyle(ButtonStyle.Primary)
+            );
+
+            await interaction.update({
+                content: `🎰 Vous misez ${betAmount} VCOINS sur une douzaine`,
+                components: [row]
+            });
+        }
     },
 
-    createDozenSelection() {
-        return new StringSelectMenuBuilder()
-            .setCustomId('roulette_dozen')
-            .setPlaceholder('Choisissez une douzaine...')
-            .addOptions([
-                { label: '1ère douzaine (1-12)', value: 'first' },
-                { label: '2ème douzaine (13-24)', value: 'second' },
-                { label: '3ème douzaine (25-36)', value: 'third' }
-            ]);
+    createNumberButtons() {
+        const rows = [];
+        let currentRow = new ActionRowBuilder();
+        
+        const numbersToShow = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12];
+        
+        numbersToShow.forEach(num => {
+            const btn = new ButtonBuilder()
+                .setCustomId(`roulette_num_${num}`)
+                .setLabel(num.toString())
+                .setStyle(num === 0 ? ButtonStyle.Success : 
+                        num % 2 === 1 ? ButtonStyle.Danger : ButtonStyle.Secondary);
+            
+            if (currentRow.components.length === 5) {
+                rows.push(currentRow);
+                currentRow = new ActionRowBuilder();
+            }
+            currentRow.addComponents(btn);
+        });
+        
+        if (currentRow.components.length > 0) {
+            rows.push(currentRow);
+        }
+        
+        return rows;
     },
 
     async spinWheel(interaction, betDetails) {
         const { betType, betValue, betAmount } = betDetails;
-    
-        if (!interaction.replied && !interaction.deferred) {
-            await interaction.deferReply();
-        }
-    
+        
         const spinEmbed = new EmbedBuilder()
             .setTitle('🎡 **La roue tourne...**')
             .setDescription('La bille roule...')
             .setColor('#3498DB');
-    
-        await interaction.editReply({ 
+
+        await interaction.update({ 
             embeds: [spinEmbed],
             components: [] 
         });
-    
+
         await new Promise(resolve => setTimeout(resolve, 3000));
 
         const winner = ROULETTE_CONFIG.NUMBERS[Math.floor(Math.random() * 37)];
@@ -213,23 +225,17 @@ module.exports = {
         }
     },
 
-    getBetTypeName(betType) {
-        switch(betType) {
-            case 'color': return 'Rouge/Noir';
-            case 'straight': return 'Numéro plein';
-            case 'dozen': return 'Douzaine';
-            default: return betType;
-        }
-    },
-
     formatBet(betType, betValue) {
         switch(betType) {
-            case 'color': return betValue === 'red' ? 'ROUGE' : 'NOIR';
-            case 'straight': return `Numéro ${betValue}`;
+            case 'color': 
+                return betValue === 'red' ? 'ROUGE' : 'NOIR';
+            case 'straight': 
+                return `Numéro ${betValue.replace('roulette_num_', '')}`;
             case 'dozen': 
                 return betValue === 'first' ? '1-12' :
                        betValue === 'second' ? '13-24' : '25-36';
-            default: return betValue;
+            default: 
+                return betValue;
         }
     }
 };
