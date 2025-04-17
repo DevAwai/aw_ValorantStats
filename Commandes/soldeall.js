@@ -2,6 +2,25 @@ const { SlashCommandBuilder, EmbedBuilder } = require("discord.js");
 const { loadCredits } = require("../utils/creditsManager");
 const { checkCooldown } = require("../utils/cooldownManager");
 
+function splitIntoChunks(lines, maxLength = 1024) {
+    const chunks = [];
+    let currentChunk = '';
+
+    for (const line of lines) {
+        if ((currentChunk + line + '\n').length > maxLength) {
+            chunks.push(currentChunk);
+            currentChunk = '';
+        }
+        currentChunk += line + '\n';
+    }
+
+    if (currentChunk) {
+        chunks.push(currentChunk);
+    }
+
+    return chunks;
+}
+
 module.exports = {
     name: "soldeall",
     description: "Affiche le solde de tous les joueurs",
@@ -24,6 +43,8 @@ module.exports = {
             }
 
             const sortedCredits = Object.entries(credits).sort(([, a], [, b]) => b - a);
+            const lines = sortedCredits.map(([userId, balance]) => `<@${userId}> : **${balance} VCOINS**`);
+            const chunks = splitIntoChunks(lines);
 
             const embed = new EmbedBuilder()
                 .setColor("#00FF00")
@@ -32,12 +53,9 @@ module.exports = {
                 .setFooter({ text: "Casino Valorant Stats", iconURL: interaction.client.user.displayAvatarURL() })
                 .setTimestamp();
 
-            let creditsList = "";
-            for (const [userId, balance] of sortedCredits) {
-                creditsList += `<@${userId}> : **${balance} VCOINS**\n`;
-            }
-
-            embed.addFields({ name: "\u200B", value: creditsList });
+            chunks.forEach((chunk, i) => {
+                embed.addFields({ name: `\u200B`, value: chunk });
+            });
 
             await interaction.reply({ embeds: [embed], ephemeral: false });
         } catch (error) {
