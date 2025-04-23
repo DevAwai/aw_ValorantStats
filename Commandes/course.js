@@ -6,6 +6,7 @@ const { handleError, ERROR_TYPES } = require("../utils/errorHandler");
 module.exports = {
     name: "course",
     cooldown: 2000,
+    utilisation: "/course",
     description: "Démarre une course de chevaux",
     async execute(interaction) {
         try {

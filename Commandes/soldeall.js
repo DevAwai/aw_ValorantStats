@@ -25,6 +25,7 @@ module.exports = {
     name: "soldeall",
     description: "Affiche le solde de tous les joueurs",
     cooldown: 2000,
+    utilisation: "/soldeall",
     options: [],
     async execute(interaction) {
         const cooldownResult = checkCooldown(interaction.user.id, this.name, this.cooldown);

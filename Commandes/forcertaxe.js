@@ -5,6 +5,7 @@ module.exports = {
     name: "forcertaxe",
     description: "🚨 Déclenche la taxation manuellement (Admin)",
     category: "Admin",
+    utilisation: "/forcetaxe",
     ownerOnly: true,
     options: [],
 

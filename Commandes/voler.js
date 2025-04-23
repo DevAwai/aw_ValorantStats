@@ -19,6 +19,7 @@ module.exports = {
     name: "voler",
     description: "Tente de voler un joueur au hasard",
     cooldown: 2000,
+    utilisation: "/voler",
     options: [],
 
     async execute(interaction) {

@@ -8,6 +8,7 @@ module.exports = {
     name: "reboot",
     cooldown: 2000,
     description: "Rafraîchit toutes les commandes du bot",
+    utilisation: "/reboot",
 
     async execute(interaction) {
 

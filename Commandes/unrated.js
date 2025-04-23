@@ -11,6 +11,7 @@ module.exports = {
     permissions: "Aucune",
     dm: false,
     cooldown: 2000,
+    utilisation: "/unrated",
     options: [
         {
             type: "string",

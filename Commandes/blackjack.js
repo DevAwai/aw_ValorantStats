@@ -38,6 +38,7 @@ module.exports = {
     name: "blackjack",
     description: "Jouer une partie de Blackjack (mise: 1-10 000 VCOINS)",
     cooldown: 10000,
+    utilisation: "/blackjack",
     options: [{
         type: "integer",
         name: "montant",

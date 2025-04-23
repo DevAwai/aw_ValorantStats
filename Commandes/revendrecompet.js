@@ -14,6 +14,7 @@ module.exports = {
     name: "revendrecompet",
     description: "Revendre une compétence pour 50% de son prix d'achat",
     cooldown: 2000,
+    utilisation: "/revendrecompet",
     options: [
         {
             type: "string",

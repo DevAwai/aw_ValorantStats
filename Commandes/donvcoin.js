@@ -7,6 +7,7 @@ module.exports = {
     name: "donvcoin",
     description: "Donne des vcoins à un autre utilisateur",
     cooldown: 2000,
+    utilisation: "/donvcoin",
     options: [
         {
             type: "user",

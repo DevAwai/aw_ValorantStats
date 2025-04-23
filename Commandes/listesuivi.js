@@ -9,6 +9,7 @@ module.exports = {
     description: "Affiche la liste des joueurs suivis par le bot",
     cooldown: 2000,
     permissions: "Aucune",
+    utilisation: "/listesuivi",
     dm: false,
 
     async execute(interaction) {

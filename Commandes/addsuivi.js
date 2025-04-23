@@ -7,6 +7,7 @@ module.exports = {
     name: "addsuivi",
     description: "Ajoute un joueur à la liste des surveillés",
     cooldown: 2000,
+    utilisation: "/addsuivi",
     options: [
         {
             type: "string",

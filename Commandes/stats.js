@@ -118,6 +118,7 @@ module.exports = {
     permissions: "Aucune",
     dm: false,
     cooldown: 2000,
+    utilisation: "/stats",
     options: [
         {
             type: "string",

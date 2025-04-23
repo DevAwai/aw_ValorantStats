@@ -7,6 +7,7 @@ module.exports = {
     name: "duel",
     description: "Lance un morpion contre un autre joueur",
     cooldown: 2000,
+    utilisation: "/duel",
     options: [
         {
             type: "user",

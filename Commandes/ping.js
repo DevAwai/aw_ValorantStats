@@ -7,6 +7,7 @@ module.exports = {
     name: "ping",
     cooldown: 2000,
     description: "Affiche la latence du bot",
+    utilisation: "/ping",
 
     async execute(interaction) {
 

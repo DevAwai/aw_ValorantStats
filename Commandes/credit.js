@@ -7,6 +7,7 @@ module.exports = {
     name: "credit",
     description: "Affiche votre solde de crédits",
     cooldown: 2000,
+    utilisation: "/credit",
     options: [],
     async execute(interaction) {
         const cooldownResult = checkCooldown(interaction.user.id, this.name, this.cooldown);

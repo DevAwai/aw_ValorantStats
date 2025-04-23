@@ -7,6 +7,7 @@ module.exports = {
     name: "travailler",
     description: "Choisissez un métier pour gagner des vcoins",
     cooldown: 2000,
+    utilisation: "/travailler",
     options: [],
 
     async execute(interaction) {

@@ -7,6 +7,7 @@ module.exports = {
     name: "gamble",
     description: "Parie sur pile ou face (mise: 1-10 000 VCOINS)",
     cooldown: 10000,
+    utilisation: "/gamble",
     options: [
         {
             type: "string",

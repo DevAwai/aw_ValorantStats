@@ -59,6 +59,7 @@ module.exports = {
     name: "compet",
     description: "Affiche toutes les compétences disponibles à l'achat",
     cooldown: 2000,
+    utilisation: "/compet",
     options: [],
 
     async execute(interaction) {

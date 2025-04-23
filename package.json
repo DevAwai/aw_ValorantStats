@@ -12,6 +12,9 @@
   "dependencies": {
     "@discordjs/rest": "^2.4.3",
     "axios": "^1.8.4",
+    "dbd-capriham-theme": "^1.7.35",
+    "dbd-soft-ui": "^1.7.40-beta.1",
+    "discord-dashboard": "^2.3.62",
     "discord.js": "^14.18.0",
     "dotenv": "^16.4.7",
     "fs": "^0.0.1-security",

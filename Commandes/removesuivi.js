@@ -8,6 +8,7 @@ module.exports = {
     name: "removesuivi",
     description: "Retire un joueur de la liste des surveillés",
     cooldown: 2000,
+    utilisation: "/removesuivi",
     options: [
         {
             type: "string",

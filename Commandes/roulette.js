@@ -34,6 +34,7 @@ module.exports = {
     name: "roulette",
     description: "Jouez à la roulette casino avec différents types de paris",
     cooldown: ROULETTE_CONFIG.COOLDOWN,
+    utilisation: "/roulette",
     options: [{
         type: "integer",
         name: "mise",

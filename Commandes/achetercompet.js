@@ -14,6 +14,7 @@ module.exports = {
     name: "achetercompet",
     description: "Acheter une compétence",
     cooldown: 2000,
+    utilisation: "/achetercompet",
     options: [
         {
             type: "string",

@@ -13,6 +13,7 @@ module.exports = {
     name: "mescompet",
     description: "Affiche vos compétences",
     cooldown: 2000,
+    utilisation: "/mescompet",
     options: [],
 
     async execute(interaction) {

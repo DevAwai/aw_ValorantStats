@@ -8,6 +8,7 @@ module.exports = {
     name: "help",
     cooldown: 2000,
     description: "Affiche la liste des commandes disponibles",
+    utilisation: "/help",
 
     async execute(interaction) {
 

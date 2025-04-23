@@ -7,6 +7,7 @@ module.exports = {
     name: "miserchev",
     description: "Pariez sur un cheval pour la course en cours",
     cooldown: 2000,
+    utilisation: "/miserchev",
     options: [
         {
             type: "string",
