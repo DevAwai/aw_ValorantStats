@@ -30,8 +30,8 @@ module.exports = async bot => {
             id: bot.user.id,
             secret: config.secret
         },
-        redirectUri: "XXXXX",
-        domain: "XXXXX",
+        redirectUri: "http://localhost:8080/discord/callback",
+        domain: "http://localhost",
         minimalizedConsoleLogs: true,
         acceptPrivacyPolicy: true,
         bot: bot,
